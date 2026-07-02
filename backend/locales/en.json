@@ -1,0 +1,81 @@
+{
+  "sma.confluence_major_below": "🎯 Major Confluence : Retest of the SMA 200d ({ecart_sma200:+.2f}%) and SMA 50w ({ecart_w50:+.2f}%) supports from below — optimal accumulation zone.",
+  "sma.confluence_major_touch": "🎯 Major Confluence : Price touching the SMA 200d ({ecart_sma200:+.2f}%) and SMA 50w ({ecart_w50:+.2f}%) — confirm the direction before acting.",
+  "sma.support_mt_below": "📍 Medium-Term Support : Price retesting the SMA 200d from below ({ecart_sma200:+.2f}%) — medium-term accumulation signal.",
+  "sma.sma200_above": "📈 SMA 200d : Price slightly above ({ecart_sma200:+.2f}%) — uptrend preserved, less optimal entry.",
+  "sma.support_lt_below": "📈 Long-Term Support : Price retesting the SMA 50w from below ({ecart_w50:+.2f}%) — long-term area of interest.",
+  "sma.sma50w_above": "📊 SMA 50w : Price slightly above ({ecart_w50:+.2f}%) — support preserved in an uptrend.",
+  "sma.deep_discount": "📉 Deep discount : Price below the SMA 200d ({ecart_sma200:+.2f}%) and SMA 50w ({ecart_w50:+.2f}%) — wait for a stabilization signal.",
+
+  "trend.bullish_confirmed": "📊 Confirmed Bullish Structure : SMA50d ({sma50_price:.2f}) > SMA200d — rising SMA200 slope ({sma200_slope:+.1f}%/20d). Retest in a supportive context.",
+  "trend.favorable": "📊 Favorable Structure : SMA50d above the SMA200d — underlying trend intact.",
+  "trend.bearish": "⚠️ Bearish Structure : SMA50d ({sma50_price:.2f}) below SMA200d — falling slope ({sma200_slope:+.1f}%/20d). 'Falling knife' risk — extra caution.",
+  "trend.neutral_bearish": "⚠️ Neutral/Bearish Structure : SMA50d below SMA200d (death cross) — negative medium-term momentum.",
+
+  "high52.major_correction": "🔻 Major correction : Down {dist_52w:+.1f}% vs 52-week High — significant recovery potential.",
+  "high52.significant_consolidation": "📉 Significant consolidation : Down {dist_52w:+.1f}% vs 52-week High.",
+  "high52.moderate_consolidation": "📊 Moderate consolidation : Down {dist_52w:+.1f}% vs 52-week High.",
+  "high52.near_highs": "⚠️ Near the highs : Only {dist_52w:+.1f}% from the 52-week High — limited safety margin.",
+
+  "low52.capitulation_zone": "🔵 Potential Capitulation Zone : Price {dist_52w_low:+.1f}% from the 52-week low ({l52w_price:.2f}) — limited residual risk, strong rebound potential.",
+  "low52.near_floor": "🔵 Near the yearly floor : {dist_52w_low:+.1f}% above the 52-week low ({l52w_price:.2f}).",
+
+  "div.annual": "💰 Estimated annual dividend : {div_montant:.2f} (last paid on {div_date}), indicative yield ~{rendement_div_pct:.2f}% on the current price.",
+
+  "rsiw.deep_oversold": "⚡ Pronounced Weekly Oversold (RSI W: {rsi_weekly:.1f}) : Major reversal signal to watch.",
+  "rsiw.oversold": "⚡ Weekly Oversold (RSI W: {rsi_weekly:.1f}) : Medium-term reversal potential.",
+  "rsiw.neutral": "🔄 Weekly RSI in neutral zone ({rsi_weekly:.1f}) : Momentum without excess, trend to be confirmed.",
+
+  "rsid.extreme_oversold": "🔥 Extreme Daily Oversold (RSI D: {rsi_daily:.1f}) : Technical rebound likely in the short term.",
+  "rsid.oversold": "🔥 Daily Oversold (RSI D: {rsi_daily:.1f}) : Short-term selling pressure, favorable zone to accumulate.",
+  "rsid.neutral_low": "✅ Neutral/low RSI (RSI D: {rsi_daily:.1f}) : No bullish excess, acceptable entry window.",
+  "rsid.overbought": "⚠️ Daily Overbought (RSI D: {rsi_daily:.1f}) : Short-term correction risk — avoid initiating here.",
+
+  "vol.very_high": "⚠️ Very high volume ({rvol:.1f}x) : Potential selling pressure or institutional event — extra caution.",
+  "vol.above_avg": "📊 Above-average volume ({rvol:.1f}x) : Increased activity, watch the direction.",
+  "vol.low": "🍃 Low volume ({rvol:.1f}x) : No institutional selling pressure detected.",
+
+  "divrsi.bullish": "📐 Confirmed Bullish RSI Divergence : Price at a Lower Low but RSI rebounding ({rsi_creux1:.1f} → {rsi_creux2:.1f}) over the last 80 sessions — strong technical reversal signal, indicates exhaustion of selling pressure.",
+
+  "bb.below_lower": "📉 Below the Lower Bollinger Band (BB%: {bb_pct_val:.2f}) : extreme oversold confirmed — price outside the lower band.",
+  "bb.near_lower": "📊 Near the Lower Bollinger Band (BB%: {bb_pct_val:.2f}) : low compression, selling pressure easing.",
+  "bb.above_upper": "⚠️ Above the Upper Bollinger Band (BB%: {bb_pct_val:.2f}) : price in extreme extension, mean-reversion risk.",
+  "bb.near_upper": "⚠️ Near the Upper Bollinger Band (BB%: {bb_pct_val:.2f}) : likely short-term resistance.",
+
+  "macdw.bullish_cross": "🔀 Bullish Weekly MACD Cross : histogram just turned positive — momentum reversal confirmed.",
+  "macdw.positive_expanding": "📈 Positive Weekly MACD expanding ({macd_w_hist:+.3f}) : medium-term momentum accelerating.",
+  "macdw.negative_narrowing": "🔄 Negative Weekly MACD but narrowing ({macd_w_hist:+.3f}) : selling pressure decelerating.",
+  "macdw.negative_expanding": "📉 Negative Weekly MACD expanding ({macd_w_hist:+.3f}) : persistent medium-term selling pressure.",
+
+  "estimation.gain": "🎯 Target 1 (Return to SMA 200) : {sma200_price:.2f} ({pot_sma200_pct:+.2f}%)\n   🎯 Target 2 (Return to 52w High) : {h52w_price:.2f} ({pot_52w_pct:+.2f}%)\n   🛑 Reference stop (52w Floor) : {l52w_price:.2f} ({stop_pct:+.2f}%)\n   📈 {c_green}{c_bold}Estimated total return (Capital + Annual div. ~{rendement_div_pct:.2f}%) : {gain_total_est_pct:+.2f}%{c_reset} (+{gain_1000e:.2f} per 1,000 invested)",
+
+  "misc.div_mention": " and annual dividend ~{rendement_div_pct:.2f}%",
+  "ctx.support_retest_below": "support retest from below",
+  "ctx.touching_ma": "touching the moving averages",
+
+  "status.strong": "🟢 MAJOR OPPORTUNITY — STRONG ACCUMULATION ({score}/100)",
+  "expl.strong": "Favorable technical confluence : {ctx}, {dist_52w_abs:.1f}% discount from the highs{div_mention}. Very favorable risk/reward.",
+  "strat.strong": "Initiate a significant position (40–50% of target allocation). Add on any pullback toward support.",
+
+  "status.attractive": "🔵 ATTRACTIVE ACCUMULATION ZONE ({score}/100)",
+  "expl.attractive": "The price is testing a key support zone{div_mention}. Attractive risk/reward, directional confirmation not yet complete.",
+  "strat.attractive": "Build gradually via DCA (20–30% of target allocation). Watch for a weekly close above support.",
+
+  "status.watch": "🟠 WATCH — PREMATURE ENTRY ({score}/100)",
+  "expl.watch": "Incomplete signal : insufficient discount or indicators not yet confirming a bottom.",
+  "strat.watch": "Set a price alert. Wait for a pullback toward major supports (SMA 200d / SMA 50w) before acting.",
+
+  "status.avoid": "🔴 AVOID — UNFAVORABLE SETUP ({score}/100)",
+  "expl.avoid": "Deteriorated technical structure : bearish underlying trend and/or dominant negative momentum. Risk/reward is not favorable as it stands.",
+  "strat.avoid": "Set aside for now. Reassess only after price stabilization and moving averages turning up.",
+
+  "verdict.strong": "Strong accumulation justified",
+  "verdict.gradual": "Gradual accumulation possible",
+  "verdict.watch": "Stay on watch",
+  "verdict.avoid": "Setup to avoid",
+
+  "trend.up_bullish": "↑ Bullish",
+  "trend.up_neutral": "↑ Neutral",
+  "trend.down_bearish": "↓ Bearish",
+  "trend.down_neutral": "↓ Neutral"
+}

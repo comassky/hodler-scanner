@@ -1,0 +1,81 @@
+{
+  "sma.confluence_major_below": "🎯 Confluence Majeure : Retest des supports SMA 200d ({ecart_sma200:+.2f}%) et SMA 50w ({ecart_w50:+.2f}%) par en-dessous — zone d'accumulation optimale.",
+  "sma.confluence_major_touch": "🎯 Confluence Majeure : Cours au contact de la SMA 200d ({ecart_sma200:+.2f}%) et SMA 50w ({ecart_w50:+.2f}%) — confirmer la direction avant d'agir.",
+  "sma.support_mt_below": "📍 Support Moyen Terme : Cours en retest de la SMA 200j par en-dessous ({ecart_sma200:+.2f}%) — signal d'accumulation moyen terme.",
+  "sma.sma200_above": "📈 SMA 200j : Cours légèrement au-dessus ({ecart_sma200:+.2f}%) — tendance haussière préservée, entrée moins optimale.",
+  "sma.support_lt_below": "📈 Support Long Terme : Cours en retest de la SMA 50 sem par en-dessous ({ecart_w50:+.2f}%) — zone d'intérêt long terme.",
+  "sma.sma50w_above": "📊 SMA 50w : Cours légèrement au-dessus ({ecart_w50:+.2f}%) — support préservé en tendance haussière.",
+  "sma.deep_discount": "📉 Décote profonde : Prix sous la SMA 200j ({ecart_sma200:+.2f}%) et SMA 50w ({ecart_w50:+.2f}%) — attendre un signal de stabilisation.",
+
+  "trend.bullish_confirmed": "📊 Structure Haussière Confirmée : SMA50j ({sma50_price:.2f}) > SMA200j — pente SMA200 ascendante ({sma200_slope:+.1f}%/20j). Retest dans un contexte porteur.",
+  "trend.favorable": "📊 Structure Favorable : SMA50j au-dessus de la SMA200j — tendance de fond intacte.",
+  "trend.bearish": "⚠️ Structure Baissière : SMA50j ({sma50_price:.2f}) sous SMA200j — pente descendante ({sma200_slope:+.1f}%/20j). Risque de 'couteau qui tombe' — prudence accrue.",
+  "trend.neutral_bearish": "⚠️ Structure Neutre/Baissière : SMA50j sous SMA200j (death cross) — momentum moyen terme négatif.",
+
+  "high52.major_correction": "🔻 Correction majeure : Retrait de {dist_52w:+.1f}% vs Plus Haut 52 sem — potentiel de retour significatif.",
+  "high52.significant_consolidation": "📉 Consolidation significative : Retrait de {dist_52w:+.1f}% vs Plus Haut 52 sem.",
+  "high52.moderate_consolidation": "📊 Consolidation modérée : Retrait de {dist_52w:+.1f}% vs Plus Haut 52 sem.",
+  "high52.near_highs": "⚠️ Proximité des sommets : Seulement {dist_52w:+.1f}% du Plus Haut 52 sem — marge de sécurité limitée.",
+
+  "low52.capitulation_zone": "🔵 Zone de Capitulation Potentielle : Cours à {dist_52w_low:+.1f}% du plancher 52 sem ({l52w_price:.2f}) — risque résiduel limité, fort potentiel de rebond.",
+  "low52.near_floor": "🔵 Proche du plancher annuel : {dist_52w_low:+.1f}% au-dessus du bas 52 sem ({l52w_price:.2f}).",
+
+  "div.annual": "💰 Dividende annuel estimé : {div_montant:.2f} (dernier versement le {div_date}), rendement indicatif ~{rendement_div_pct:.2f}% sur le cours actuel.",
+
+  "rsiw.deep_oversold": "⚡ Survente Hebdomadaire prononcée (RSI W: {rsi_weekly:.1f}) : Signal de retournement majeur à surveiller.",
+  "rsiw.oversold": "⚡ Survente Hebdomadaire (RSI W: {rsi_weekly:.1f}) : Potentiel de retournement moyen terme.",
+  "rsiw.neutral": "🔄 RSI Hebdo en zone neutre ({rsi_weekly:.1f}) : Momentum sans excès, tendance à confirmer.",
+
+  "rsid.extreme_oversold": "🔥 Survente Extrême Journalière (RSI D: {rsi_daily:.1f}) : Rebond technique probable à court terme.",
+  "rsid.oversold": "🔥 Survente Journalière (RSI D: {rsi_daily:.1f}) : Pression baissière court terme, zone favorable pour accumuler.",
+  "rsid.neutral_low": "✅ RSI neutre/bas (RSI D: {rsi_daily:.1f}) : Pas d'excès haussier, fenêtre d'entrée acceptable.",
+  "rsid.overbought": "⚠️ Surachat Journalier (RSI D: {rsi_daily:.1f}) : Risque de correction court terme — éviter d'initier ici.",
+
+  "vol.very_high": "⚠️ Volumes très élevés ({rvol:.1f}x) : Pression vendeuse potentielle ou événement institutionnel — prudence accrue.",
+  "vol.above_avg": "📊 Volumes supérieurs à la moyenne ({rvol:.1f}x) : Activité accrue, surveiller la direction.",
+  "vol.low": "🍃 Volumes faibles ({rvol:.1f}x) : Absence de pression vendeuse institutionnelle détectée.",
+
+  "divrsi.bullish": "📐 Divergence Haussière RSI Confirmée : Prix en Lower Low mais RSI en rebond ({rsi_creux1:.1f} → {rsi_creux2:.1f}) sur les 80 dernières séances — signal de retournement technique fort, indique un épuisement de la pression vendeuse.",
+
+  "bb.below_lower": "📉 Sous le Band Inf. Bollinger (BB%: {bb_pct_val:.2f}) : survente extrême confirmée — cours hors bande basse.",
+  "bb.near_lower": "📊 Proche du Band Inf. Bollinger (BB%: {bb_pct_val:.2f}) : compression basse, pression vendeuse s'atténue.",
+  "bb.above_upper": "⚠️ Au-dessus du Band Sup. Bollinger (BB%: {bb_pct_val:.2f}) : cours en extension extrême, risque de retour à la moyenne.",
+  "bb.near_upper": "⚠️ Proche du Band Sup. Bollinger (BB%: {bb_pct_val:.2f}) : résistance probable à court terme.",
+
+  "macdw.bullish_cross": "🔀 Croisement MACD Hebdo Haussier : histogramme vient de passer positif — retournement de momentum confirmé.",
+  "macdw.positive_expanding": "📈 MACD Hebdo positif en expansion ({macd_w_hist:+.3f}) : momentum moyen terme en accélération.",
+  "macdw.negative_narrowing": "🔄 MACD Hebdo négatif mais en réduction ({macd_w_hist:+.3f}) : décélération de la pression vendeuse.",
+  "macdw.negative_expanding": "📉 MACD Hebdo négatif en expansion ({macd_w_hist:+.3f}) : pression vendeuse moyen terme persistante.",
+
+  "estimation.gain": "🎯 Cible 1 (Retour SMA 200) : {sma200_price:.2f} ({pot_sma200_pct:+.2f}%)\n   🎯 Cible 2 (Retour Sommet 52w) : {h52w_price:.2f} ({pot_52w_pct:+.2f}%)\n   🛑 Stop de référence (Plancher 52w) : {l52w_price:.2f} ({stop_pct:+.2f}%)\n   📈 {c_green}{c_bold}Rendement total estimé (Capital + Div. annuel ~{rendement_div_pct:.2f}%) : {gain_total_est_pct:+.2f}%{c_reset} (+{gain_1000e:.2f} pour 1 000 investis)",
+
+  "misc.div_mention": " et dividende annuel ~{rendement_div_pct:.2f}%",
+  "ctx.support_retest_below": "retest de support par en-dessous",
+  "ctx.touching_ma": "au contact des moyennes",
+
+  "status.strong": "🟢 OPPORTUNITÉ MAJEURE — ACCUMULATION FORTE ({score}/100)",
+  "expl.strong": "Confluence technique favorable : {ctx}, décote de {dist_52w_abs:.1f}% sur les sommets{div_mention}. Risque/rendement très favorable.",
+  "strat.strong": "Initier une position significative (40–50% de l'allocation cible). Renforcer sur tout repli vers le support.",
+
+  "status.attractive": "🔵 ZONE D'ACCUMULATION INTÉRESSANTE ({score}/100)",
+  "expl.attractive": "Le cours teste une zone de support clé{div_mention}. Couple rendement/risque attractif, confirmation directionnelle non encore totale.",
+  "strat.attractive": "Initier progressivement en DCA (20–30% de l'allocation cible). Surveiller la clôture hebdomadaire au-dessus du support.",
+
+  "status.watch": "🟠 SURVEILLANCE — ENTRÉE PRÉMATURÉE ({score}/100)",
+  "expl.watch": "Signal incomplet : décote insuffisante ou indicateurs ne confirmant pas encore un creux.",
+  "strat.watch": "Mettre en alerte-prix. Attendre un repli vers les supports majeurs (SMA 200j / SMA 50w) avant toute action.",
+
+  "status.avoid": "🔴 À ÉVITER — CONFIGURATION DÉFAVORABLE ({score}/100)",
+  "expl.avoid": "Structure technique dégradée : tendance de fond baissière et/ou momentum négatif dominant. Le couple rendement/risque n'est pas favorable en l'état.",
+  "strat.avoid": "Écarter pour l'instant. Ne réévaluer qu'après stabilisation du prix et redressement des moyennes mobiles.",
+
+  "verdict.strong": "Accumulation forte justifiée",
+  "verdict.gradual": "Accumulation progressive envisageable",
+  "verdict.watch": "Rester en surveillance",
+  "verdict.avoid": "Configuration à éviter",
+
+  "trend.up_bullish": "↑ Haussier",
+  "trend.up_neutral": "↑ Neutre",
+  "trend.down_bearish": "↓ Baissier",
+  "trend.down_neutral": "↓ Neutre"
+}

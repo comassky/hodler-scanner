@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/*
+  Themes: we remap the entire « zinc » scale via CSS variables.
+  Tailwind v4 utilities (bg-zinc-900, text-zinc-100, …) reference
+  var(--color-zinc-*), so changing these variables re-themes the whole app
+  without touching a single class. The app is designed « dark »: low
+  indices = dark backgrounds, high indices = light text.
+*/
+
+/* ── BLACK theme (default) ─────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --color-zinc-50:  #fafafa;
+  --color-zinc-100: #f4f4f5;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #52525b;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  --color-zinc-950: #09090b;
+}
+
+/* ── GRAY theme (softened dark) ──────────────────────────────────── */
+[data-theme="gray"] {
+  --color-zinc-50:  #fbfbfc;
+  --color-zinc-100: #f0f0f2;
+  --color-zinc-200: #e0e0e4;
+  --color-zinc-300: #cacace;
+  --color-zinc-400: #b0b0b8;
+  --color-zinc-500: #8e8e98;
+  --color-zinc-600: #6b6b75;
+  --color-zinc-700: #4c4c54;
+  --color-zinc-800: #3a3a41;
+  --color-zinc-900: #2a2a2f;
+  --color-zinc-950: #202024;
+}
+
+/* ── LIGHT theme (inverted scale) ──────────────────────────────── */
+[data-theme="light"] {
+  --color-zinc-50:  #09090b;
+  --color-zinc-100: #18181b;
+  --color-zinc-200: #27272a;
+  --color-zinc-300: #3f3f46;
+  --color-zinc-400: #52525b;
+  --color-zinc-500: #5c5c64;
+  --color-zinc-600: #71717a;
+  --color-zinc-700: #9a9aa3;
+  --color-zinc-800: #e2e2e7;
+  --color-zinc-900: #ffffff;
+  --color-zinc-950: #f2f2f5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--color-zinc-950);
+}
+
+/* Smooth transition when switching theme */
+body,
+body * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
+}
+
+/* Discreet scrollbar, adapted to the theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-zinc-700);
+  border-radius: 6px;
+  border: 2px solid var(--color-zinc-950);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-zinc-600);
+}
+
+body {
+  color: var(--color-zinc-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

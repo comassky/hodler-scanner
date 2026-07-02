@@ -1,0 +1,503 @@
+<div align="center">
+
+# 📈 Hodler Scanner
+
+### 💎 *Buy &amp; Hold* Technical Analysis
+
+**Turn raw market data into an actionable accumulation score, a plain-language thesis and concrete price targets.**
+
+<p>
+  <img alt="Python"       src="https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="FastAPI"      src="https://img.shields.io/badge/FastAPI-0.111+-009688?style=flat-square&logo=fastapi&logoColor=white">
+  <img alt="Vue.js"       src="https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white">
+  <img alt="Vite"         src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white">
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white">
+  <img alt="Chart.js"     src="https://img.shields.io/badge/Chart.js-4.4-FF6384?style=flat-square&logo=chartdotjs&logoColor=white">
+  <img alt="Docker"       src="https://img.shields.io/badge/Docker-multi--stage-2496ED?style=flat-square&logo=docker&logoColor=white">
+  <img alt="License: GPLv3" src="https://img.shields.io/badge/License-GPLv3-blue?style=flat-square&logo=gnu&logoColor=white">
+</p>
+
+<p>
+  <img alt="Score 0-100"    src="https://img.shields.io/badge/📊_Score-0–100-brightgreen?style=flat-square">
+  <img alt="i18n EN/FR"     src="https://img.shields.io/badge/🌍_i18n-EN_/_FR-success?style=flat-square">
+  <img alt="Strategy"       src="https://img.shields.io/badge/🎯_Strategy-Buy_%26_Hold-orange?style=flat-square">
+  <img alt="Theme"          src="https://img.shields.io/badge/🌗_Theme-Light_/_Dark-8957e5?style=flat-square">
+</p>
+
+</div>
+
+> 🔭 A **long-term** stock-opportunity scanner that turns raw market data into an **actionable accumulation score (0–100)**, a plain-language investment thesis and concrete price targets.
+
+The project couples a **quantitative analysis engine in Python** (vectorized `pandas`/`numpy` indicators, `yfinance` data) with a **FastAPI REST API** and a rich **Vue 3 interface** (interactive Chart.js charts, light/dark theme, watchlist, educational tooltips, full **English / French** localization).
+
+---
+
+> [!CAUTION]
+> ## ⚠️ DISCLAIMER — NOT FINANCIAL ADVICE
+>
+> Hodler Scanner is provided **strictly for educational and informational purposes only**. It does **NOT constitute investment, financial, legal or tax advice**, nor any recommendation to buy or sell a security.
+>
+> - 📉 The analyses rely on historical data and technical heuristics that **guarantee no future outcome** — *past performance is not indicative of future results*.
+> - 🚫 The author accepts **no responsibility or liability** for any loss or damage arising from the use of this tool.
+> - 🔎 **Always do your own research** and **consult a licensed financial advisor** before making any investment decision.
+>
+> _By using this project, you acknowledge that you do so entirely at your own risk._ → [Read the full disclaimer](#-disclaimer)
+
+---
+
+## 📋 Table of contents
+
+1. [Investment philosophy](#-investment-philosophy)
+2. [Features](#-features)
+3. [Architecture](#-architecture)
+4. [Tech stack](#-tech-stack)
+5. [The financial analysis engine](#-the-financial-analysis-engine)
+   - [Technical indicators](#technical-indicators)
+   - [The scoring system](#the-scoring-system-0100)
+   - [Statuses & recommendations](#statuses--recommendations)
+   - [Price targets & estimated return](#price-targets--estimated-return)
+6. [Internationalization (i18n)](#-internationalization-i18n)
+7. [REST API](#-rest-api)
+8. [Frontend](#-frontend)
+9. [Installation & deployment](#-installation--deployment)
+10. [Configuration](#-configuration)
+11. [Caching strategy](#-caching-strategy)
+12. [Command-line usage](#-command-line-usage-cli)
+13. [Disclaimer](#-disclaimer)
+
+---
+
+## 🎯 Investment philosophy
+
+Hodler Scanner is **not** a short-term *trading* tool. It is built for the **Buy & Hold** investor who wants to **accumulate quality companies at the right time** — that is, during **technical pullbacks onto major supports**, rather than in the middle of euphoria near the highs.
+
+The underlying logic rests on three pillars:
+
+| Pillar | Principle | Indicators used |
+|--------|-----------|-----------------|
+| **Underlying trend** | Favor names whose long-term structure remains healthy (no "falling knife"). | SMA 200d, SMA 50w, SMA 200 slope, crossovers |
+| **Discount / timing** | Reward buying on a **pullback** onto support and penalize buying at the top. | Distance to 52-week high / low, Bollinger %B, RSI |
+| **Reversal momentum** | Detect the **exhaustion of selling pressure** that precedes a rebound. | Weekly/daily RSI, RSI divergences, weekly MACD, relative volume |
+
+The result is condensed into a **single opportunity score**, transparently broken down so that every point gained or lost is traceable.
+
+---
+
+## ✨ Features
+
+- 🔍 **Full single-ticker analysis** in JSON (price, ~15 indicators, distances, signals, scoring, targets).
+- 🧮 **0–100 accumulation scoring** with a **signed contribution** per category (Strengths / Watchpoints bar chart).
+- 🗂️ **Batch analysis** (up to 50 tickers in parallel).
+- 📊 **Interactive charts**: price + SMA 200/50, volume, **Fibonacci levels**, **Bollinger bands** (togglable), RSI 14 and MACD histogram sub-charts, plus an annotated **price/RSI divergence** detector.
+- ↕️ **Dashboard sorting** — sort the watchlist by score (highest first by default), change, or name.
+- 🔄 **Forced refresh** (cache bypass) per ticker.
+- ⭐ **Persisted watchlist** (localStorage) + search history.
+- 🌗 **Light / dark theme** with dynamic chart re-coloring.
+- 🌍 **Full English / French localization** — both the UI and the backend-generated analysis text, with the choice persisted in localStorage.
+- 💡 **Structured educational tooltips** (plain-language definition, formula, interpretation scale, tip) on every indicator.
+- ⚡ **Cache pre-warming** at startup on a configurable ticker list.
+- 📚 **Auto-generated Swagger UI** (`/docs`).
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    subgraph Client["🖥️ Browser"]
+        VUE["Vue 3 SPA<br/>Chart.js · Tailwind v4"]
+    end
+
+    subgraph Server["🐍 FastAPI container (uvicorn :8000)"]
+        API["REST API"]
+        CACHE["TTL caches<br/>(analyses · charts · fundamentals)"]
+        ENGINE["Scoring engine<br/>backend/script.py"]
+        I18N["Language files<br/>backend/i18n.py · backend/locales/*.json"]
+        DB[("SQLite<br/>backend/db.py<br/>watchlist · name cache")]
+        STATIC["Static SPA mounted on /"]
+    end
+
+    YF[("Yahoo Finance<br/>via yfinance")]
+    VOL[["💾 ./data volume<br/>hodler.db"]]
+
+    VUE -- "GET /ticker/… /chart /fundamentals" --> API
+    VUE -- "GET/POST/DELETE /favorites" --> API
+    API --> CACHE
+    API --> I18N
+    API -- "favorites · ticker names" --> DB
+    DB -. "persisted" .-> VOL
+    CACHE -- "miss" --> ENGINE
+    ENGINE -- "download OHLCV + dividends" --> YF
+    API --> STATIC
+    STATIC --> VUE
+```
+
+Two frontend serving modes are provided:
+
+- **Production (single image)** — the multi-stage `Dockerfile` builds the SPA (`node:22`) then copies it into `/app/static`, served directly by FastAPI (`StaticFiles`, mounted last so it does not shadow the API routes).
+- **Nginx alternative** — `frontend/Dockerfile` + `nginx.conf` serve the SPA behind Nginx, which *proxies* the `/ticker|/health|/cache|/docs` routes to the API container.
+- **Persistence** — a lightweight **SQLite** database (`backend/db.py`) stores the **favorites (watchlist)** and a memoized **`TICKER = Name`** cache, kept on the `./data` volume (`DB_PATH`, default `/app/data/hodler.db`).
+
+---
+
+## 🧰 Tech stack
+
+| Layer | Technologies |
+|-------|--------------|
+| 📥 **Data** | [`yfinance`](https://github.com/ranaroussi/yfinance) (OHLCV + dividends, 500 sessions) |
+| 🧮 **Compute** | Python 3.11, `pandas ≥ 2.0`, `numpy ≥ 1.26` (vectorized indicators) |
+| 🌐 **API** | FastAPI ≥ 0.111, Uvicorn (ASGI), Pydantic (validation) |
+| 🌍 **i18n** | Backend JSON language files (`backend/locales/en.json`, `backend/locales/fr.json`) loaded by `backend/i18n.py` |
+| 🖼️ **Frontend** | Vue 3.5, Vite 6, Tailwind CSS v4.1, Chart.js 4.4 + `chartjs-plugin-zoom` |
+| 🐳 **Containerization** | Docker multi-stage, Docker Compose |
+
+---
+
+## 🔬 The financial analysis engine
+
+All the financial intelligence lives in [`backend/script.py`](backend/script.py) — in particular the `generer_analyse_investisseur_lt(item, lang)` function. Indicators are pre-computed in `_analyse_ticker()` of [`backend/api.py`](backend/api.py) from **500 daily sessions** (auto_adjust disabled, dividends included).
+
+### Technical indicators
+
+| Indicator | Computation | Role in the analysis |
+|-----------|-------------|----------------------|
+| **RSI 14 (daily)** | **Wilder** smoothing (`EMA α = 1/14`), TradingView-compatible | Short-term momentum: oversold (< 30) / overbought (> 70) |
+| **RSI 14 (weekly)** | Same on `W-FRI` resampled closes | Underlying momentum, more reliable for *Buy & Hold* |
+| **SMA 200 days** | Simple moving average | Ultimate long-term trend reference |
+| **SMA 50 days** | Simple moving average | Intermediate trend (Golden/Death Cross) |
+| **SMA 50 weeks** | ≈ 250 sessions, on a weekly basis | Major institutional support |
+| **SMA 200 slope** | % change over 20 sessions | Direction of the underlying trend |
+| **Weekly MACD** | EMA(12) − EMA(26), EMA(9) signal, histogram | Medium-term momentum reversal |
+| **Bollinger %B** | `(price − lower band) / (4σ)` over 20d, ±2σ | Position within volatility (compression / expansion) |
+| **ATR 14** | Average *True Range* over 14d | Volatility amplitude (position sizing) |
+| **RVOL** | Today's volume ÷ 20-day volume SMA | Detects institutional pressure |
+| **52-week high / low** | Rolling max / min over 252 sessions | Discount and Fibonacci anchors |
+| **Bullish RSI divergence** | Detection of price *pivots* (Lower Low) vs RSI (Higher Low) over 80 sessions | Strong selling-exhaustion signal |
+
+### The scoring system (0–100)
+
+The score starts from a **neutral base of 40 points**, then each module adds or removes points via an `_add(category, text, impact)` helper. The total is **clamped to [0, 100]**. Each contribution is kept per category (`score_details`) and per diagnostic (signed `impact`), which feeds the **Strengths / Watchpoints** bars of the interface.
+
+<details>
+<summary><b>1 · SMA supports (200d / 50w confluence)</b></summary>
+
+Confluence = price within a ±3% (SMA 200d) / ±3.5% (SMA 50w) band.
+
+| Condition | Impact |
+|-----------|:------:|
+| **Double** confluence, retest **from below** (optimal zone) | **+35** |
+| **Double** confluence, touching (to be confirmed) | +22 |
+| SMA 200d confluence only, below / above | +20 / +10 |
+| SMA 50w confluence only, below / above | +20 / +10 |
+| Deep discount below both averages | +10 |
+</details>
+
+<details>
+<summary><b>1b · Trend structure (SMA50 vs SMA200 + slope)</b></summary>
+
+| Condition | Impact |
+|-----------|:------:|
+| SMA50 > SMA200 **and** slope > +0.5%/20d (confirmed bullish structure) | +15 |
+| SMA50 > SMA200 (favorable structure) | +8 |
+| SMA50 < SMA200 **and** slope < −0.5%/20d ("falling knife") | −15 |
+| SMA50 < SMA200 (death cross) | −8 |
+</details>
+
+<details>
+<summary><b>2 · Discount vs 52-week high</b></summary>
+
+| Drawdown from the high | Impact |
+|------------------------|:------:|
+| ≤ −25% (major correction) | +25 |
+| −25% to −15% | +15 |
+| −15% to −8% | +5 |
+| > −8% (near the highs, limited margin) | −15 |
+</details>
+
+<details>
+<summary><b>2b · Proximity to the 52-week low</b></summary>
+
+| Distance to the low | Impact |
+|---------------------|:------:|
+| ≤ +5% (potential capitulation zone) | +12 |
+| ≤ +15% | +6 |
+</details>
+
+<details>
+<summary><b>3 · Annual dividend</b></summary>
+
+Dividend paid over the trailing 12 months > 0 → **+10** and computation of the **indicative yield** (`dividend / price`), fed back into the total-return estimate.
+</details>
+
+<details>
+<summary><b>4 · Weekly RSI</b></summary>
+
+| Weekly RSI | Impact |
+|------------|:------:|
+| ≤ 35 (pronounced oversold) | +20 |
+| ≤ 45 (oversold) | +12 |
+| ≤ 55 (neutral) | +4 |
+</details>
+
+<details>
+<summary><b>5 · Daily RSI</b></summary>
+
+| Daily RSI | Impact |
+|-----------|:------:|
+| ≤ 30 (extreme oversold) | +15 |
+| ≤ 40 (oversold) | +10 |
+| ≤ 50 (neutral/low) | +5 |
+| ≥ 70 (overbought) | −10 |
+</details>
+
+<details>
+<summary><b>6 · Relative volume (RVOL)</b></summary>
+
+| RVOL | Impact |
+|------|:------:|
+| ≥ 2.0× (spike — selling pressure / event) | −10 |
+| ≥ 1.3× (elevated activity) | 0 |
+| < 0.8× (no selling pressure) | +10 |
+</details>
+
+<details>
+<summary><b>7 · Bullish RSI divergence</b></summary>
+
+Price at a *Lower Low* while the RSI forms a *Higher Low* over the last 80 sessions → **+18** (strong technical reversal signal).
+</details>
+
+<details>
+<summary><b>8 · Bollinger %B</b></summary>
+
+| %B | Impact |
+|----|:------:|
+| < 0 (below the lower band, extreme oversold) | +10 |
+| < 0.2 (near the lower band) | +6 |
+| > 1.0 (above the upper band, extension) | −6 |
+| > 0.8 (near the upper band, resistance) | −3 |
+</details>
+
+<details>
+<summary><b>9 · Weekly MACD</b></summary>
+
+| Histogram configuration | Impact |
+|-------------------------|:------:|
+| Bullish crossover (turns positive) | +15 |
+| Positive and expanding | +8 |
+| Negative but narrowing | +4 |
+| Negative and expanding | −8 |
+</details>
+
+### Statuses & recommendations
+
+The final score is translated into a **readable status** paired with a contextual **DCA strategy**:
+
+| Score | Status | Associated strategy |
+|:-----:|--------|---------------------|
+| **≥ 80** | 🟢 **Major opportunity — strong accumulation** | Initiate 40–50% of the target allocation, add on pullbacks |
+| **60–79** | 🔵 **Attractive accumulation zone** | Gradual DCA (20–30%), wait for weekly confirmation |
+| **40–59** | 🟠 **Watch — premature entry** | Price alert, wait for a pullback onto SMA 200d / 50w |
+| **< 40** | 🔴 **Avoid — unfavorable setup** | Set aside, reassess after stabilization |
+
+An **express synthesis** is generated for the header: `verdict` (action), `atout` (best strength) and `risque` (main watchpoint), automatically extracted from the diagnostics sorted by impact.
+
+### Price targets & estimated return
+
+The engine produces a conservative **1-year** trade plan:
+
+- 🎯 **Target 1** — return to the **SMA 200d**
+- 🎯 **Target 2** — return to the **52-week high**
+- 🛑 **Reference stop** — the **52-week low**
+- 📈 **Estimated total return** = `65% of the potential return to the 52-week high` **+** `annual dividend yield`, expressed as a gain per €1,000 invested.
+
+> The **0.65** factor applies a caution discount: a full return to the high is not assumed.
+
+---
+
+## 🌍 Internationalization (i18n)
+
+The app is fully bilingual (**English default**, **French**), covering both the interface and the backend-generated analysis text.
+
+| Side | Mechanism |
+|------|-----------|
+| **Frontend** | The `useI18n` composable holds a message catalog with dot-path lookup and `{param}` interpolation. The locale is persisted in `localStorage` (`smm_locale`) and switching it re-fetches the analysis so the backend text is re-translated. |
+| **Backend** | Translations live in external JSON language files [`backend/locales/en.json`](backend/locales/en.json) and [`backend/locales/fr.json`](backend/locales/fr.json), loaded and cached by [`backend/i18n.py`](backend/i18n.py) via `t(lang, key, **params)`. Templates use Python `str.format` placeholders (e.g. `{rsi_daily:.1f}`). English is the fallback for any missing key. |
+
+The chosen language is sent to the API through the `lang` query parameter (`GET /ticker/{code}?lang=fr`) or the `lang` field of the batch request body. Adding a language is as simple as dropping a new `backend/locales/xx.json` file and registering the code.
+
+---
+
+## 🌐 REST API
+
+Default base URL: `http://localhost:8000` — interactive documentation at **`/docs`**.
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/health` | Availability check |
+| `GET` | `/search?q=` | Search tickers by name / symbol |
+| `GET` | `/ticker/{code}?lang=en` | Full technical analysis (`?refresh=true` to bypass cache) |
+| `GET` | `/ticker/{code}/chart?period=1y` | Historical series (`3mo\|6mo\|1y\|2y\|max`, `?refresh=true`) |
+| `GET` | `/ticker/{code}/fundamentals` | P/E, market cap, sector… (`?refresh=true`) |
+| `POST` | `/tickers` | Batch analysis (≤ 50 tickers, `{ "tickers": [...], "lang": "en", "refresh": false }`) |
+| `GET` | `/cache` | Cache state (entries, age, remaining TTL) |
+| `DELETE` | `/cache` | Clear the entire cache |
+| `DELETE` | `/cache/{code}` | Invalidate a ticker |
+
+<details>
+<summary><b>Example response for <code>GET /ticker/MC.PA</code> (excerpt)</b></summary>
+
+```jsonc
+{
+  "ticker": "MC.PA",
+  "name": "LVMH Moët Hennessy",
+  "data_partiel": false,
+  "price": { "last": 620.10, "var_jour_pct": 0.89 },
+  "indicators": {
+    "sma200": 640.5, "sma50": 615.2, "w50": 660.1,
+    "sma200_slope_20j_pct": -0.42,
+    "rsi_daily": 41.2, "rsi_weekly": 46.8,
+    "rvol": 0.74, "bb_pct": 0.18,
+    "macd_w_hist": 0.31, "macd_w_cross_up": true,
+    "atr14": 12.4, "atr14_pct": 2.0
+  },
+  "distances": {
+    "ecart_sma200_pct": -3.2, "dist_52w_high_pct": -18.4,
+    "dist_52w_low_pct": 6.1, "h52w_price": 760.0, "l52w_price": 584.3
+  },
+  "signals": {
+    "tendance": "↓ Neutral", "alerte_sma200": true,
+    "divergence_rsi": true, "rsi_creux": [34.1, 39.8]
+  },
+  "analysis": {
+    "score": 78,
+    "score_details": { "SMA": 20, "52H": 15, "RSI-D": 10, "MACD-W": 15, "…": 0 },
+    "statut": "🔵 ATTRACTIVE ACCUMULATION ZONE (78/100)",
+    "synthese": {
+      "verdict": "Gradual accumulation possible",
+      "atout": "Medium-Term Support",
+      "risque": null
+    },
+    "diagnostics": [ { "text": "…", "impact": 20 }, { "text": "…", "impact": -8 } ]
+  }
+}
+```
+</details>
+
+---
+
+## 🎨 Frontend
+
+Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
+
+**Components** (`src/components/`)
+- `DashboardView` / `DashboardCard` — watchlist dashboard view (with score/change/name sorting)
+- `TickerSearch` — search bar + history
+- `TickerCharts` — Chart.js charts (price/SMA/volume + Fibonacci + Bollinger, RSI, MACD, divergences), zoom/pan, Fibonacci & Bollinger toggles
+- `InfoTip` — structured educational tooltips (title, formula, colored scale, tip)
+- `AppHeader` — header + theme and language switchers
+
+**Composables** (`src/composables/`)
+- `useFormatters` — formatting (numbers, %, color classes based on thresholds)
+- `useI18n` — English/French message catalog + locale persistence
+- `useTheme` — persistent light/dark theme
+- `useWatchlist` — persisted watchlist
+
+**Persistence** (localStorage): `smm_history`, `smm_watchlist`, `smm_theme`, `smm_locale`, `smm_dash_sort`.
+
+**Theming**: Tailwind v4 compiles utilities into CSS variables (`--color-zinc-*`), overridden under `[data-theme="light"]` for **runtime** re-theming, including chart re-coloring (CSS variables read at render time).
+
+---
+
+## 🚀 Installation & deployment
+
+### With Docker Compose (recommended)
+
+```bash
+# Builds the SPA + the API and runs everything
+docker compose up --build
+
+# → API + interface : http://localhost:8000
+# → Swagger UI        : http://localhost:8000/docs
+```
+
+### Local development
+
+**Backend**
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+uvicorn api:app --reload --port 8000 --app-dir backend
+```
+
+**Frontend** (hot-reload, proxy to the API)
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:3000 (proxy /ticker, /health, /cache → :8000)
+```
+
+**Frontend production build**
+```bash
+cd frontend && npm run build   # generates frontend/dist
+```
+
+> When you change backend translations or the scoring engine, rebuild the Docker image so `backend/i18n.py` and the `backend/locales/` folder are included in the container.
+
+---
+
+## ⚙️ Configuration
+
+| Variable / file | Effect |
+|-----------------|--------|
+| `TICKERS` (env) | CSV list of tickers to **pre-warm** at startup (otherwise pre-warms the saved favorites) |
+| `DB_PATH` (env) | Path to the SQLite database (default `/app/data/hodler.db`) |
+| `backend/locales/*.json` | Backend analysis-text translations (add a file to support a new language) |
+| `PYTHONUNBUFFERED=1` | Unbuffered logs |
+
+The SQLite database stores the **favorites (watchlist)** and a **memoized `TICKER=Name` cache**, persisted via the `./data` volume in Compose.
+
+---
+
+## 🗄️ Caching strategy
+
+Three thread-safe in-memory TTL caches (`_TTLCache`) limit calls to Yahoo Finance:
+
+| Cache | Content | TTL |
+|-------|---------|:---:|
+| `_cache` | Full technical analyses (key `TICKER:lang`) | **15 min** |
+| `_chart_cache` | Historical series (key `TICKER:period`) | **1 h** |
+| `_fund_cache` | Fundamentals | **2 h** |
+
+The `refresh=true` parameter (or the UI **Refresh** button) forces recomputation, ignoring these caches. At startup, `_prewarm()` loads the configured tickers in the background (max 4 concurrent downloads).
+
+---
+
+## 🖥️ Command-line usage (CLI)
+
+[`backend/script.py`](backend/script.py) can also be run standalone to scan a batch of tickers:
+
+```bash
+python backend/script.py
+```
+
+It prints colored (ANSI) cards per ticker: status, diagnostics, targets and estimated return.
+
+---
+
+## ⚠️ Disclaimer
+
+> **Not financial advice.** This tool is provided **for educational and informational purposes only** and does **not constitute investment, financial, legal or tax advice**, nor a recommendation to buy or sell any security.
+>
+> **No liability.** The author accepts **no responsibility or liability** for any loss or damage arising from the use of this tool. The analyses rely on historical market data (via Yahoo Finance) and technical heuristics that **guarantee no future outcome** — past performance is not indicative of future results.
+>
+> **Just one tool among many.** Hodler Scanner is **only one input among others** and should never be used in isolation. Always cross-check with other sources, **do your own research**, and consult a licensed financial advisor before making any investment decision.
+
+---
+
+<div align="center">
+
+**📈 Hodler Scanner** · Built with 🐍 FastAPI &amp; 💚 Vue 3 · Licensed under GPLv3
+
+<sub>⭐ If this project helps you, consider giving it a star · <a href="#-hodler-scanner">Back to top ↑</a></sub>
+
+</div>
