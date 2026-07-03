@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import DashboardCard from './DashboardCard.vue'
+import TickerSearch from './TickerSearch.vue'
 import { useWatchlist } from '../composables/useWatchlist.js'
 import { useI18n } from '../composables/useI18n.js'
 
@@ -12,6 +13,7 @@ const { watchlist, add, remove } = useWatchlist()
 const { t, locale } = useI18n()
 const queryClient = useQueryClient()
 const wlInput     = ref('')
+const adding      = ref(false)   // spinner while a freshly added ticker loads
 
 const SORTS = ['scoreDesc', 'scoreAsc', 'changeDesc', 'nameAsc']
 const sortBy = useLocalStorage('smm_dash_sort', 'scoreDesc')
@@ -70,11 +72,37 @@ function removeCard(ticker) {
   queryClient.setQueryData(dashKey.value, old => (old ?? []).filter(r => r.ticker !== ticker))
 }
 
-function addWlInput() {
-  const code = wlInput.value.trim().toUpperCase()
-  if (!code || watchlist.value.includes(code)) { wlInput.value = ''; return }
-  add(code)
+function addWlInput(code) {
+  const c = (typeof code === 'string' ? code : wlInput.value).trim().toUpperCase()
   wlInput.value = ''
+  if (!c || watchlist.value.includes(c)) return
+  add(c)
+  // First ticker: enabling the main query triggers a full auto-fetch.
+  // Otherwise fetch just this ticker and merge it into the cached results.
+  if (watchlist.value.length > 1) fetchTicker(c)
+}
+
+// Fetch a single ticker and merge it into the dashboard cache (no full reload).
+async function fetchTicker(code) {
+  adding.value = true
+  try {
+    const res = await fetch('/tickers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tickers: [code], lang: locale.value }),
+    })
+    if (!res.ok) throw new Error(t('dash.serverError'))
+    const results = (await res.json()).results ?? []
+    queryClient.setQueryData(dashKey.value, old => {
+      const map = new Map((old ?? []).map(r => [r.ticker, r]))
+      for (const r of results) map.set(r.ticker, r)
+      return [...map.values()]
+    })
+  } catch {
+    // On failure the ticker simply stays as an unloaded stub (fallback "Load").
+  } finally {
+    adding.value = false
+  }
 }
 
 // Expose reload for parent (header button etc.)
@@ -121,15 +149,14 @@ defineExpose({ reload: loadDashboard })
       </div>
     </div>
 
-    <!-- Add ticker -->
-    <div class="flex gap-2 mb-6 max-w-sm">
-      <input v-model="wlInput" @keyup.enter="addWlInput()"
-        :placeholder="t('dash.addPlaceholder')"
-        class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 text-sm font-mono transition-colors" />
-      <button @click="addWlInput()"
-        class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2.5 rounded-xl text-sm transition-colors whitespace-nowrap">
-        {{ t('dash.add') }}
-      </button>
+    <!-- Add ticker (same autocomplete search as the Analysis tab) -->
+    <div class="mb-6 max-w-xl">
+      <TickerSearch
+        v-model="wlInput"
+        :loading="adding"
+        :show-popular="false"
+        :submit-label="t('dash.add')"
+        @search="addWlInput" />
     </div>
 
     <!-- Error -->

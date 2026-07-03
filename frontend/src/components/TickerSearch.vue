@@ -10,6 +10,8 @@ const props = defineProps({
   modelValue: { type: String,  default: '' },
   loading:    { type: Boolean, default: false },
   hasResult:  { type: Boolean, default: false },
+  submitLabel:{ type: String,  default: '' },
+  showPopular:{ type: Boolean, default: true },
 })
 const emit = defineEmits(['update:modelValue', 'search'])
 
@@ -116,7 +118,7 @@ const POPULAR = ['MC.PA','AIR.PA','OR.PA','TTE.PA','RMS.PA','AAPL','NVDA','ASML.
             </svg>
             {{ t('search.analyzing') }}
           </span>
-          <span v-else>{{ t('search.analyze') }}</span>
+          <span v-else>{{ submitLabel || t('search.analyze') }}</span>
         </button>
       </div>
 
@@ -137,7 +139,7 @@ const POPULAR = ['MC.PA','AIR.PA','OR.PA','TTE.PA','RMS.PA','AAPL','NVDA','ASML.
     </div>
 
     <!-- Popular suggestions -->
-    <div v-if="!hasResult && !loading" class="mt-3 flex flex-wrap gap-1.5">
+    <div v-if="showPopular && !hasResult && !loading" class="mt-3 flex flex-wrap gap-1.5">
       <span class="text-zinc-600 text-xs self-center mr-1">{{ t('search.popular') }}</span>
       <button v-for="s in POPULAR" :key="s" @click="$emit('search', s)"
         class="px-2.5 py-1 text-xs bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors font-mono">
