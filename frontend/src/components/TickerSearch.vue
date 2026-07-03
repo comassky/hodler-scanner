@@ -1,5 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { refDebounced, onClickOutside } from '@vueuse/core'
+import { useQuery } from '@tanstack/vue-query'
 import { useI18n } from '../composables/useI18n.js'
 
 const { t } = useI18n()
@@ -15,64 +17,69 @@ const emit = defineEmits(['update:modelValue', 'search'])
 const localInput = ref(props.modelValue)
 watch(() => props.modelValue, v => { localInput.value = v })
 
-const acItems   = ref([])
+const rootRef   = ref(null)
 const acIdx     = ref(-1)
-const acLoading = ref(false)
-let acTimer = null
-let acSeq   = 0
+const dismissed = ref(false)   // true once the user picked/closed the dropdown
+
+// Debounced query term (≥ 2 chars) drives the autocomplete request.
+const query      = computed(() => localInput.value.trim())
+const debouncedQ = refDebounced(query, 350)
+const acEnabled  = computed(() => debouncedQ.value.length >= 2)
+
+const { data: acData, isFetching: acLoading } = useQuery({
+  queryKey: ['search', debouncedQ],
+  enabled: acEnabled,
+  placeholderData: prev => prev,   // keep previous results while typing (no flicker)
+  queryFn: async () => {
+    const r = await fetch(`/search?q=${encodeURIComponent(debouncedQ.value)}`)
+    return r.ok ? await r.json() : []
+  },
+})
+
+// Items rendered in the dropdown: fetched matches, unless dismissed or too short.
+const visibleItems = computed(() =>
+  dismissed.value || !acEnabled.value ? [] : (acData.value ?? [])
+)
+
+// A new query term re-opens the dropdown and resets the highlighted row.
+watch(debouncedQ, () => { dismissed.value = false; acIdx.value = -1 })
+// Close the dropdown when clicking outside the component.
+onClickOutside(rootRef, () => { dismissed.value = true; acIdx.value = -1 })
 
 function onInput(e) {
   localInput.value = e.target.value
   emit('update:modelValue', localInput.value)
-  acIdx.value = -1
-  const q = localInput.value.trim()
-  clearTimeout(acTimer)
-  if (q.length < 2) { acItems.value = []; return }
-  acTimer = setTimeout(async () => {
-    const seq = ++acSeq           // anti-race token
-    acLoading.value = true
-    try {
-      const r = await fetch(`/search?q=${encodeURIComponent(q)}`)
-      const items = r.ok ? await r.json() : []
-      if (seq === acSeq) acItems.value = items   // ignore stale responses
-    } catch { if (seq === acSeq) acItems.value = [] }
-    finally { if (seq === acSeq) acLoading.value = false }
-  }, 350)
-}
-
-function closeAc() {
-  setTimeout(() => { acItems.value = []; acIdx.value = -1 }, 150)
 }
 
 function pickAc(ticker) {
   localInput.value = ticker
   emit('update:modelValue', ticker)
-  acItems.value = []
-  acIdx.value   = -1
+  dismissed.value = true
+  acIdx.value     = -1
   emit('search', ticker)
 }
 
 function onKeydown(e) {
-  if (!acItems.value.length) return
+  if (!visibleItems.value.length) return
   if (e.key === 'ArrowDown') {
     e.preventDefault()
-    acIdx.value = Math.min(acIdx.value + 1, acItems.value.length - 1)
+    acIdx.value = Math.min(acIdx.value + 1, visibleItems.value.length - 1)
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
     acIdx.value = Math.max(acIdx.value - 1, -1)
   } else if (e.key === 'Enter' && acIdx.value >= 0) {
     e.preventDefault()
-    pickAc(acItems.value[acIdx.value].ticker)
+    pickAc(visibleItems.value[acIdx.value].ticker)
   } else if (e.key === 'Escape') {
-    acItems.value = []
-    acIdx.value   = -1
+    dismissed.value = true
+    acIdx.value     = -1
   }
 }
 
 function submit() {
   const code = localInput.value.trim().toUpperCase()
   if (!code) return
-  acItems.value = []
+  dismissed.value = true
   emit('search', code)
 }
 
@@ -80,7 +87,7 @@ const POPULAR = ['MC.PA','AIR.PA','OR.PA','TTE.PA','RMS.PA','AAPL','NVDA','ASML.
 </script>
 
 <template>
-  <div>
+  <div ref="rootRef">
     <div class="relative">
       <div class="flex gap-2">
         <!-- Input -->
@@ -90,7 +97,6 @@ const POPULAR = ['MC.PA','AIR.PA','OR.PA','TTE.PA','RMS.PA','AAPL','NVDA','ASML.
             @input="onInput"
             @keydown="onKeydown"
             @keyup.enter="acIdx < 0 && submit()"
-            @blur="closeAc"
             :placeholder="t('search.placeholder')"
             autocomplete="off" spellcheck="false"
             class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/40 text-sm transition-colors font-mono"
@@ -115,10 +121,10 @@ const POPULAR = ['MC.PA','AIR.PA','OR.PA','TTE.PA','RMS.PA','AAPL','NVDA','ASML.
       </div>
 
       <!-- Autocomplete dropdown -->
-      <div v-if="acItems.length"
+      <div v-if="visibleItems.length"
         class="absolute z-50 left-0 right-[4.5rem] top-full mt-1.5 bg-zinc-900 border border-zinc-700/80 rounded-xl overflow-hidden shadow-2xl shadow-black/60">
         <button
-          v-for="(item, i) in acItems" :key="item.ticker"
+          v-for="(item, i) in visibleItems" :key="item.ticker"
           @mousedown.prevent="pickAc(item.ticker)"
           :class="['w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
             acIdx === i ? 'bg-indigo-600/20' : 'hover:bg-zinc-800/80']">

@@ -1,16 +1,12 @@
-import { ref, watch } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 
 const LS_KEY = 'smm_watchlist'
 
 // Singleton — shared across all components that call useWatchlist()
 // Initialized from the localStorage cache for immediate display, then
 // synced with the backend (source of truth: SQLite).
-const watchlist = ref(
-  JSON.parse(localStorage.getItem(LS_KEY) || '[]')
-)
-
-// Local mirror (offline cache / instant display on next load)
-watch(watchlist, v => localStorage.setItem(LS_KEY, JSON.stringify(v)), { deep: true })
+// useLocalStorage keeps the ref and localStorage mirror in sync automatically.
+const watchlist = useLocalStorage(LS_KEY, [])
 
 async function _json(url, options) {
   const res = await fetch(url, options)

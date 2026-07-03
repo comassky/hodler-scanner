@@ -1,0 +1,40 @@
+# ── Git / metadata ──────────────────────────────
+.git
+.gitignore
+.gitattributes
+*.md
+LICENSE
+screenshots/
+
+# ── Python ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+reports/
+data/
+*.db
+*.sqlite3
+
+# ── Node / frontend ─────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# ── Editor / OS ─────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Docker / compose ────────────────────────────
+Dockerfile
+frontend/Dockerfile
+compose.yaml
+docker-compose*.yml
+.dockerignore

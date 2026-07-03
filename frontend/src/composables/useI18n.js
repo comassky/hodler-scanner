@@ -1,4 +1,5 @@
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 
 // Available languages — English by default, choice persisted in localStorage.
 export const LOCALES = [
@@ -7,14 +8,11 @@ export const LOCALES = [
 ]
 
 const _ids = LOCALES.map(l => l.id)
-const stored = localStorage.getItem('smm_locale')
-const locale = ref(_ids.includes(stored) ? stored : 'en')
+const locale = useLocalStorage('smm_locale', 'en')
+if (!_ids.includes(locale.value)) locale.value = 'en'
 
 function setLocale(l) {
-  if (_ids.includes(l)) {
-    locale.value = l
-    localStorage.setItem('smm_locale', l)
-  }
+  if (_ids.includes(l)) locale.value = l
 }
 
 // ── Message catalog ─────────────────────────────────────────────────
