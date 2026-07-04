@@ -220,7 +220,7 @@ function goToAnalyse(ticker) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-950 text-zinc-100">
+  <div class="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
 
     <AppHeader
       v-model:view="view"
@@ -230,7 +230,7 @@ function goToAnalyse(ticker) {
     />
 
     <!-- ═════ ANALYSIS ═══════════════════════════════════════════ -->
-    <main v-if="view === 'analyse'" class="px-4 md:px-6 xl:px-8 py-8 pb-20">
+    <main v-if="view === 'analyse'" class="flex-1 px-4 md:px-6 xl:px-8 py-8 pb-20">
 
       <!-- Search bar -->
       <div class="mb-6">
@@ -732,6 +732,7 @@ function goToAnalyse(ticker) {
     <!-- ═════ DASHBOARD ═══════════════════════════════════════════ -->
     <DashboardView
       v-else-if="view === 'watchlist'"
+      class="flex-1"
       @analyse="goToAnalyse"
     />
 
