@@ -427,7 +427,42 @@ Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 
 ## 🚀 Installation & deployment
 
-### With Docker Compose (recommended)
+### Pre-built image (GitHub Container Registry)
+
+A ready-to-use multi-arch image is published on **GHCR** — no build required:
+
+| Tag | Points to |
+|-----|-----------|
+| `ghcr.io/comassky/hodler-scanner:latest-dev` | `main` branch — **latest / unstable** |
+| `ghcr.io/comassky/hodler-scanner:latest` | latest released tag — **recommended** |
+| `ghcr.io/comassky/hodler-scanner:X.Y.Z` | a specific version tag (e.g. `1.0.0`) |
+
+```bash
+# Pull & run the latest stable release
+docker run -d --name hodler-scanner \
+  -p 8000:8000 \
+  -v hodler-data:/app/data \
+  ghcr.io/comassky/hodler-scanner:latest
+
+# → API + interface : http://localhost:8000
+# → Swagger UI        : http://localhost:8000/docs
+```
+
+Or reference it directly in `compose.yaml`:
+
+```yaml
+services:
+  hodler-scanner:
+    image: ghcr.io/comassky/hodler-scanner:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - hodler-data:/app/data
+volumes:
+  hodler-data:
+```
+
+### With Docker Compose (build from source)
 
 ```bash
 # Builds the SPA + the API and runs everything
