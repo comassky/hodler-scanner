@@ -17,11 +17,19 @@ const emit = defineEmits(['update:modelValue', 'search'])
 
 // Local copy synced with parent via v-model
 const localInput = ref(props.modelValue)
-watch(() => props.modelValue, v => { localInput.value = v })
 
 const rootRef   = ref(null)
 const acIdx     = ref(-1)
 const dismissed = ref(false)   // true once the user picked/closed the dropdown
+const typing    = ref(false)   // true only after a real keystroke
+
+// A programmatic value change (dashboard navigation, history) must not open
+// the autocomplete dropdown — only real typing does.
+watch(() => props.modelValue, v => {
+  localInput.value = v
+  typing.value = false
+  dismissed.value = true
+})
 
 // Debounced query term (≥ 2 chars) drives the autocomplete request.
 const query      = computed(() => localInput.value.trim())
@@ -43,12 +51,13 @@ const visibleItems = computed(() =>
   dismissed.value || !acEnabled.value ? [] : (acData.value ?? [])
 )
 
-// A new query term re-opens the dropdown and resets the highlighted row.
-watch(debouncedQ, () => { dismissed.value = false; acIdx.value = -1 })
+// A new query term (from typing) re-opens the dropdown and resets the row.
+watch(debouncedQ, () => { acIdx.value = -1; if (typing.value) dismissed.value = false })
 // Close the dropdown when clicking outside the component.
 onClickOutside(rootRef, () => { dismissed.value = true; acIdx.value = -1 })
 
 function onInput(e) {
+  typing.value = true
   localInput.value = e.target.value
   emit('update:modelValue', localInput.value)
 }
