@@ -34,6 +34,17 @@ from i18n import t as _t
 
 _ANSI = re.compile(r"\033\[[^m]*m")
 
+# Relevance order for search results (lower = shown first).
+_QUOTE_TYPE_RANK = {
+    "EQUITY": 0,
+    "ETF": 1,
+    "INDEX": 2,
+    "MUTUALFUND": 3,
+    "CRYPTOCURRENCY": 4,
+    "CURRENCY": 5,
+    "FUTURE": 6,
+}
+
 
 def _strip(s: str) -> str:
     """Strip ANSI codes for clean JSON."""
@@ -309,6 +320,24 @@ def _analyse_ticker(ticker_code: str, lang: str = "en", data=None) -> dict:
     _tr     = pd.concat([(high - low).abs(), (high - close.shift(1)).abs(), (low - close.shift(1)).abs()], axis=1).max(axis=1)
     atr14_s = _tr.rolling(14, min_periods=1).mean()
 
+    # ── ADX 14 (Wilder) — trend *strength* (not direction) ─────────
+    _up_move   = high.diff()
+    _down_move = -low.diff()
+    _plus_dm   = pd.Series(np.where((_up_move > _down_move) & (_up_move > 0), _up_move, 0.0), index=high.index)
+    _minus_dm  = pd.Series(np.where((_down_move > _up_move) & (_down_move > 0), _down_move, 0.0), index=low.index)
+    _atr_wil   = _tr.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean()
+    _plus_di   = 100 * _plus_dm.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean() / _atr_wil
+    _minus_di  = 100 * _minus_dm.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean() / _atr_wil
+    _dx        = 100 * (_plus_di - _minus_di).abs() / (_plus_di + _minus_di).replace(0, np.nan)
+    adx14_s    = _dx.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean()
+
+    # ── Choppiness Index 14 — range (high) vs trend (low), 0–100 ───
+    _atr_sum   = _tr.rolling(14, min_periods=14).sum()
+    _hh14      = high.rolling(14, min_periods=14).max()
+    _ll14      = low.rolling(14, min_periods=14).min()
+    _chop_rng  = (_hh14 - _ll14).replace(0, np.nan)
+    chop14_s   = 100 * np.log10(_atr_sum / _chop_rng) / np.log10(14)
+
     # ── Last values ──────────────────────────────────────────
     sma200_ff   = sma200_s.ffill()
     slope_off   = min(20, len(sma200_ff) - 1)
@@ -335,6 +364,23 @@ def _analyse_ticker(ticker_code: str, lang: str = "en", data=None) -> dict:
     rvol      = round(v_curr / v_mean, 2) if v_mean > 0 else 1.0
     var_j     = float((close.pct_change() * 100).ffill().iloc[-1])
     atr14_v   = float(atr14_s.ffill().iloc[-1])
+
+    def _last_or(s, default=0.0):
+        s = s.dropna()
+        return float(s.iloc[-1]) if not s.empty else default
+
+    adx14_v    = _last_or(adx14_s)
+    chop14_v   = _last_or(chop14_s, 50.0)
+    plus_di_v  = _last_or(_plus_di)
+    minus_di_v = _last_or(_minus_di)
+
+    # Market regime from ADX (strength) + Choppiness (range vs trend) confluence.
+    if adx14_v >= 25 and chop14_v < 61.8:
+        regime = "trend_up" if plus_di_v >= minus_di_v else "trend_down"
+    elif adx14_v < 20 or chop14_v >= 61.8:
+        regime = "range"
+    else:
+        regime = "transition"
 
     # ── Dividends ─────────────────────────────────────────────────
     annual_div, last_div_date = 0.0, "N/A"
@@ -411,6 +457,8 @@ def _analyse_ticker(ticker_code: str, lang: str = "en", data=None) -> dict:
             "macd_w_cross_up":     bool(hist_curr > 0 and hist_prev <= 0),
             "atr14":               round(atr14_v, 2),
             "atr14_pct":           round(atr14_v / c_curr * 100, 2) if c_curr else 0.0,
+            "adx14":               round(adx14_v, 1),
+            "chop14":              round(chop14_v, 1),
         },
         "distances": {
             "ecart_sma200_pct":  round(dist_sma200, 2),
@@ -426,6 +474,7 @@ def _analyse_ticker(ticker_code: str, lang: str = "en", data=None) -> dict:
         },
         "signals": {
             "tendance":       tendance,
+            "regime":         regime,
             "alerte_sma200":  bool(-5.0 <= dist_sma200 <= 3.0),
             "alerte_w50":     bool(has_w50 and -5.0 <= dist_w50 <= 3.0),
             "divergence_rsi": div_hauss,
@@ -456,23 +505,49 @@ def health():
 
 @app.get("/search", summary="Search tickers by name or symbol", tags=["utils"])
 def search_tickers(q: str):
-    """Search via Yahoo Finance Search (min. 2 characters)."""
-    if len(q.strip()) < 2:
+    """
+    Search Yahoo Finance by company name, ticker symbol or **ISIN**
+    (e.g. `Apple`, `MC.PA`, `FR0000121014`). Fuzzy matching tolerates typos.
+    """
+    q = q.strip()
+    if len(q) < 2:
         return []
+
     try:
-        quotes = yf.Search(q, max_results=8).quotes
-        return [
-            {
-                "ticker":   r.get("symbol", ""),
-                "name":     r.get("longname") or r.get("shortname", ""),
-                "type":     r.get("typeDisp", ""),
-                "exchange": r.get("exchDisp", ""),
-            }
-            for r in quotes
-            if r.get("symbol")
-        ]
+        quotes = yf.Search(q, max_results=15, enable_fuzzy_query=True).quotes
+    except TypeError:
+        # Older yfinance without the fuzzy flag
+        quotes = yf.Search(q, max_results=15).quotes
     except Exception:
         return []
+
+    ql = q.lower()
+    seen: set[str] = set()
+    items: list[dict] = []
+    for r in quotes:
+        sym = (r.get("symbol") or "").strip()
+        name = (r.get("longname") or r.get("shortname") or "").strip()
+        name = re.sub(r"\s{2,}", " ", name)   # collapse Yahoo's internal padding
+        if not sym or not name or sym in seen:
+            continue
+        seen.add(sym)
+        qtype = r.get("quoteType", "")
+        base = sym.lower().split(".")[0]
+        items.append({
+            "ticker":   sym,
+            "name":     name,
+            "type":     r.get("typeDisp") or qtype.title(),
+            "exchange": r.get("exchDisp", ""),
+            "_exact":   0 if ql in (sym.lower(), base) else 1,
+            "_rank":    _QUOTE_TYPE_RANK.get(qtype, 9),
+        })
+
+    # Exact symbol/ISIN matches first, then equities & ETFs above exotic types;
+    # Yahoo's own relevance order is preserved within each group (stable sort).
+    items.sort(key=lambda x: (x["_exact"], x["_rank"]))
+    for x in items:
+        del x["_exact"], x["_rank"]
+    return items[:10]
 
 
 @app.get("/ticker/{ticker_code}", summary="Full technical analysis of a ticker")

@@ -28,7 +28,7 @@ const { watchlist, toggle, has } = useWatchlist()
 const {
   fmt, fmtPct,
   varColor, rsiClass, rsiBarClass, distClass, macdClass,
-  scoreCompClass, scoreColorFor, tendanceBadgeClass,
+  scoreCompClass, scoreColorFor, tendanceBadgeClass, regimeBadgeClass,
 } = useFormatters()
 
 // ── Analysis state ─────────────────────────────────────────────────
@@ -358,6 +358,10 @@ function goToAnalyse(ticker) {
               <span :class="['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium', tendanceBadgeClass(d.signals.tendance)]">
                 {{ d.signals.tendance }}
               </span>
+              <span v-if="d.signals.regime"
+                :class="['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium', regimeBadgeClass(d.signals.regime)]">
+                <span class="opacity-60 text-xs uppercase tracking-wide">{{ t('regime.label') }}</span>{{ t('regime.' + d.signals.regime) }}<InfoTip v-bind="t('info.regime')" />
+              </span>
               <span v-if="d.signals.alerte_sma200"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/25">
                 {{ t('app.alertSma200') }}
@@ -482,6 +486,20 @@ function goToAnalyse(ticker) {
                     <span class="text-xs text-zinc-600">({{ fmt(d.indicators.atr14_pct, 1) }}%)</span>
                   </div>
                 </div>
+                <!-- ADX 14 -->
+                <div v-if="d.indicators.adx14 != null" class="flex justify-between items-center">
+                  <span class="flex items-center text-xs text-zinc-400">{{ t('ind.adx14') }}<InfoTip v-bind="t('info.adx14')" /></span>
+                  <span :class="['text-sm font-semibold font-mono', d.indicators.adx14 >= 25 ? 'text-emerald-400' : d.indicators.adx14 < 20 ? 'text-zinc-500' : 'text-zinc-300']">
+                    {{ fmt(d.indicators.adx14, 1) }}
+                  </span>
+                </div>
+                <!-- Choppiness 14 -->
+                <div v-if="d.indicators.chop14 != null" class="flex justify-between items-center">
+                  <span class="flex items-center text-xs text-zinc-400">{{ t('ind.chop14') }}<InfoTip v-bind="t('info.chop14')" /></span>
+                  <span :class="['text-sm font-semibold font-mono', d.indicators.chop14 >= 61.8 ? 'text-sky-400' : d.indicators.chop14 < 38.2 ? 'text-emerald-400' : 'text-zinc-300']">
+                    {{ fmt(d.indicators.chop14, 1) }}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -575,22 +593,22 @@ function goToAnalyse(ticker) {
 
         <!-- News -->
         <div v-if="news && news.items.length" id="section-actualites" class="scroll-mt-28 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-          <h2 class="flex items-center text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">{{ t('app.news') }}<InfoTip v-bind="t('info.news')" /></h2>
-          <ul class="space-y-1">
+          <h2 class="flex items-center text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">{{ t('app.news') }}<InfoTip v-bind="t('info.news')" /></h2>
+          <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0.5">
             <li v-for="(n, i) in news.items" :key="i">
               <a :href="n.url" target="_blank" rel="noopener noreferrer"
-                 class="group flex gap-3 items-start hover:bg-zinc-800/40 rounded-lg -mx-2 px-2 py-2 transition-colors">
+                 class="group flex gap-2.5 items-center hover:bg-zinc-800/40 rounded-lg -mx-2 px-2 py-1.5 transition-colors">
                 <img v-if="n.thumbnail" :src="n.thumbnail" alt=""
-                     class="w-14 h-14 rounded-lg object-cover shrink-0 bg-zinc-800" loading="lazy" />
+                     class="w-9 h-9 rounded-md object-cover shrink-0 bg-zinc-800" loading="lazy" />
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm text-zinc-200 group-hover:text-white leading-snug line-clamp-2">{{ n.title }}</p>
-                  <p class="text-xs text-zinc-500 mt-1">
+                  <p class="text-sm text-zinc-200 group-hover:text-white leading-snug line-clamp-1">{{ n.title }}</p>
+                  <p class="text-xs text-zinc-500">
                     <span v-if="n.publisher" class="text-zinc-400">{{ n.publisher }}</span>
                     <span v-if="n.publisher && timeAgo(n.published)"> · </span>
                     <span>{{ timeAgo(n.published) }}</span>
                   </p>
                 </div>
-                <svg class="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </a>
             </li>
           </ul>
