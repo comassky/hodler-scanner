@@ -1,7 +1,8 @@
 name: Release
 
-# Manual release: bumps frontend/package.json, commits, tags vX.Y.Z and pushes.
-# Pushing the tag triggers docker-publish.yml, which builds & publishes the image.
+# Manual release: bumps frontend/package.json, tags X.Y.Z, builds & pushes the
+# Docker image (X.Y.Z + latest), publishes a GitHub release, then reopens the
+# next development version (X.Y.(Z+1)-SNAPSHOT) on the branch.
 on:
   workflow_dispatch:
     inputs:
@@ -17,10 +18,15 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 concurrency:
   group: release
   cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   release:
@@ -43,12 +49,12 @@ jobs:
 
       - name: Bump version
         id: bump
-        working-directory: frontend
         run: |
-          version=$(npm version "${{ inputs.bump }}" --no-git-tag-version)
+          raw=$(npm version "${{ inputs.bump }}" --no-git-tag-version --prefix frontend)
+          version="${raw#v}"                           # v1.1.0 -> 1.1.0
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Commit, tag and push
+      - name: Commit and tag
         env:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
@@ -56,6 +62,35 @@ jobs:
           git commit -m "chore(release): $VERSION"
           git tag "$VERSION"
           git push origin HEAD "$VERSION"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.bump.outputs.version }}
+            type=raw,value=latest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image (X.Y.Z + latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
@@ -68,11 +103,9 @@ jobs:
         env:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
-          release="${VERSION#v}"                       # v1.1.0 -> 1.1.0
-          IFS=. read -r major minor patch <<< "$release"
+          IFS=. read -r major minor patch <<< "$VERSION"
           next="$major.$minor.$((patch + 1))-SNAPSHOT" # 1.1.1-SNAPSHOT
-          npm version "$next" --no-git-tag-version --allow-same-version \
-            --prefix frontend
+          npm version "$next" --no-git-tag-version --allow-same-version --prefix frontend
           git add frontend/package.json frontend/package-lock.json
           git commit -m "chore: open next development version $next"
           git push origin HEAD
