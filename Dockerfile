@@ -29,6 +29,11 @@ RUN pip install --no-cache-dir -r requirements.txt \
 # db, i18n, locales/)
 COPY backend/ .
 
+# App version — single source of truth = frontend/package.json
+COPY --from=frontend-builder /app/package.json /tmp/package.json
+RUN python -c "import json; open('VERSION','w').write(json.load(open('/tmp/package.json'))['version'])" \
+ && rm /tmp/package.json
+
 # Copy the Vue build into /app/static
 COPY --from=frontend-builder /app/dist ./static
 

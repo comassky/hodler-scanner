@@ -1,0 +1,78 @@
+name: Release
+
+# Manual release: bumps frontend/package.json, commits, tags vX.Y.Z and pushes.
+# Pushing the tag triggers docker-publish.yml, which builds & publishes the image.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Semver bump level'
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        working-directory: frontend
+        run: |
+          version=$(npm version "${{ inputs.bump }}" --no-git-tag-version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag and push
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git add frontend/package.json frontend/package-lock.json
+          git commit -m "chore(release): $VERSION"
+          git tag "$VERSION"
+          git push origin HEAD "$VERSION"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump.outputs.version }}
+          name: ${{ steps.bump.outputs.version }}
+          generate_release_notes: true
+
+      - name: Open next development version (-SNAPSHOT)
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          release="${VERSION#v}"                       # v1.1.0 -> 1.1.0
+          IFS=. read -r major minor patch <<< "$release"
+          next="$major.$minor.$((patch + 1))-SNAPSHOT" # 1.1.1-SNAPSHOT
+          npm version "$next" --no-git-tag-version --allow-same-version \
+            --prefix frontend
+          git add frontend/package.json frontend/package-lock.json
+          git commit -m "chore: open next development version $next"
+          git push origin HEAD
