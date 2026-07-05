@@ -7,6 +7,7 @@ import TickerSearch from './components/TickerSearch.vue'
 import TickerCharts from './components/TickerCharts.vue'
 import DashboardView from './components/DashboardView.vue'
 import InfoTip       from './components/InfoTip.vue'
+import NewsList      from './components/NewsList.vue'
 import { useWatchlist }  from './composables/useWatchlist.js'
 import { useFormatters } from './composables/useFormatters.js'
 import { useI18n } from './composables/useI18n.js'
@@ -33,7 +34,7 @@ const {
 
 // ── Analysis state ─────────────────────────────────────────────────
 const input        = ref('')
-const period       = ref('1y')
+const period       = ref('6mo')
 const activeTicker = ref('')      // currently analyzed ticker — drives the queries
 const forceReload  = ref(false)   // one-shot cache-bypass flag for a forced refresh
 const history      = useLocalStorage('smm_history', [])
@@ -90,18 +91,6 @@ const chartLoading = computed(() => queryEnabled.value && chartQuery.isLoading.v
 const fundamentals = computed(() => fundamentalsQuery.data.value ?? null)
 const news         = computed(() => newsQuery.data.value ?? null)
 
-function timeAgo(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d)) return ''
-  const s = Math.floor((Date.now() - d.getTime()) / 1000)
-  const rtf = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' })
-  if (s < 60) return rtf.format(-s, 'second')
-  const m = Math.floor(s / 60); if (m < 60) return rtf.format(-m, 'minute')
-  const h = Math.floor(m / 60); if (h < 24) return rtf.format(-h, 'hour')
-  const j = Math.floor(h / 24); if (j < 30) return rtf.format(-j, 'day')
-  const mo = Math.floor(j / 30); return rtf.format(-mo, 'month')
-}
 
 // ── Derived ───────────────────────────────────────────────────────
 const d = computed(() => result.value)
@@ -118,10 +107,10 @@ const navSections = computed(() => {
     { id: 'section-indicateurs', label: t('sections.indicators') },
   ]
   if (fundamentals.value) s.push({ id: 'section-fondamentaux', label: t('sections.fundamentals') })
-  if (news.value && news.value.items.length) s.push({ id: 'section-actualites', label: t('sections.news') })
   s.push({ id: 'section-analyse', label: t('sections.analysis') })
   if (scoreContribs.value.length) s.push({ id: 'section-score', label: t('sections.score') })
   if (d.value?.analysis?.diagnostics?.length) s.push({ id: 'section-forces', label: t('sections.forces') })
+  if (news.value && news.value.items.length) s.push({ id: 'section-actualites', label: t('sections.news') })
   return s
 })
 
@@ -591,29 +580,6 @@ function goToAnalyse(ticker) {
           </div>
         </div>
 
-        <!-- News -->
-        <div v-if="news && news.items.length" id="section-actualites" class="scroll-mt-28 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-          <h2 class="flex items-center text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">{{ t('app.news') }}<InfoTip v-bind="t('info.news')" /></h2>
-          <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0.5">
-            <li v-for="(n, i) in news.items" :key="i">
-              <a :href="n.url" target="_blank" rel="noopener noreferrer"
-                 class="group flex gap-2.5 items-center hover:bg-zinc-800/40 rounded-lg -mx-2 px-2 py-1.5 transition-colors">
-                <img v-if="n.thumbnail" :src="n.thumbnail" alt=""
-                     class="w-9 h-9 rounded-md object-cover shrink-0 bg-zinc-800" loading="lazy" />
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm text-zinc-200 group-hover:text-white leading-snug line-clamp-1">{{ n.title }}</p>
-                  <p class="text-xs text-zinc-500">
-                    <span v-if="n.publisher" class="text-zinc-400">{{ n.publisher }}</span>
-                    <span v-if="n.publisher && timeAgo(n.published)"> · </span>
-                    <span>{{ timeAgo(n.published) }}</span>
-                  </p>
-                </div>
-                <svg class="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </a>
-            </li>
-          </ul>
-        </div>
-
         <!-- 3. Analysis text — full width -->
         <div id="section-analyse" class="scroll-mt-28 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
           <h2 class="flex items-center text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">{{ t('app.analysis') }}<InfoTip v-bind="t('info.analysis')" /></h2>
@@ -737,6 +703,9 @@ function goToAnalyse(ticker) {
             </ul>
           </div>
         </div>
+
+        <!-- News — last content block -->
+        <NewsList v-if="news && news.items.length" :items="news.items" />
 
         <!-- Footer meta -->
         <div class="flex justify-between items-center text-xs text-zinc-700 px-1 pt-1">

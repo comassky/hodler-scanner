@@ -74,8 +74,8 @@ const messages = {
       high52: '52-week high', low52: '52-week low',
     },
     regime: {
-      label: 'Regime', trend_up: 'Uptrend', trend_down: 'Downtrend',
-      range: 'Range', transition: 'Transition',
+      label: 'Regime', trend_up: 'Trending', trend_down: 'Trending',
+      range: 'Ranging', transition: 'Transition',
     },
     fund: {
       marketCap: 'Market cap', peTtm: 'P/E (ttm)', peForward: 'P/E forward',
@@ -95,7 +95,7 @@ const messages = {
     dash: {
       title: 'Dashboard', stockWatched: 'stock watched', stocksWatched: 'stocks watched',
       refreshAll: 'Refresh all', updatedAt: 'Updated {t} · auto 5 min',
-      addPlaceholder: 'Add a ticker… (MSFT, 2222.SR)', add: '+ Add',
+      add: '+ Add',
       notLoaded: 'Not loaded', load: 'Load →', serverError: 'Server error',
       emptyTitle: 'Your watchlist is empty.',
       emptyHint: 'Add tickers above or click "☆ Follow" during an analysis.',
@@ -187,11 +187,12 @@ const messages = {
       },
       atr14: {
         title: 'ATR 14 — volatility',
-        text: 'How much the stock moves on average each day, in absolute value.',
+        text: 'How much the stock moves on average each day. The % (ATR ÷ price) makes it comparable across stocks.',
         formula: '14d average of the True Range (real range of a session)',
         levels: [
-          { range: 'low', label: 'calm candles, reduced risk per trade', tone: 'good' },
-          { range: 'high', label: 'large swings, increased risk', tone: 'warn' },
+          { range: '< 1.5%', label: 'low volatility, calm candles', tone: 'good' },
+          { range: '1.5–3%', label: 'moderate volatility', tone: 'neutral' },
+          { range: '> 3%', label: 'high volatility, large swings', tone: 'warn' },
         ],
         tip: 'Suggested stop ≈ price − 1.5 × ATR.',
       },
@@ -219,8 +220,13 @@ const messages = {
       },
       regime: {
         title: 'Market regime',
-        text: 'A read of the context combining ADX (trend strength) and the Choppiness Index (range vs trend). It tells you whether RSI signals should be played as mean-reversion (range) or trend-following (trend).',
-        tip: 'Range: RSI oversold = rebound. Trend: don\u2019t fade the move.',
+        text: 'Is the market trending or going sideways? Combines ADX (trend strength) and the Choppiness Index. Direction (up/down) is given by the adjacent trend badge — this one tells you *how* to read the RSI.',
+        levels: [
+          { range: 'Trending', label: 'ADX ≥ 25 — follow the move, don\u2019t fade RSI', tone: 'good' },
+          { range: 'Ranging', label: 'ADX < 20 or CHOP ≥ 61.8 — play RSI extremes (rebound)', tone: 'neutral' },
+          { range: 'Transition', label: 'undecided — wait for confirmation', tone: 'warn' },
+        ],
+        tip: 'Ranging: RSI oversold = likely rebound. Trending: don\u2019t fade the move.',
       },
       keyLevels: {
         title: 'Key levels',
@@ -231,8 +237,9 @@ const messages = {
         title: 'SMA 200 days',
         text: 'The long-term reference moving average, the filter used by institutional investors.',
         levels: [
-          { range: 'price >', label: 'uptrend', tone: 'good' },
-          { range: 'price <', label: 'bearish territory', tone: 'bad' },
+          { range: '−3 to +3%', label: 'confluence zone, key retest', tone: 'good' },
+          { range: 'price > SMA', label: 'uptrend preserved', tone: 'good' },
+          { range: 'price < SMA', label: 'bearish territory', tone: 'bad' },
         ],
         tip: 'Plotted as an orange dashed line on the chart.',
       },
@@ -244,11 +251,21 @@ const messages = {
       high52: {
         title: '52-week high',
         text: 'Peak of the trailing year. The displayed distance measures the current discount from that peak.',
+        levels: [
+          { range: '≤ −25%', label: 'major correction, strong recovery potential', tone: 'good' },
+          { range: '−25 to −8%', label: 'healthy consolidation', tone: 'neutral' },
+          { range: '> −8%', label: 'near the highs, limited margin', tone: 'warn' },
+        ],
         tip: 'At −5% with solid indicators = potential breakout setup. Serves as the upper anchor for Fibonacci.',
       },
       low52: {
         title: '52-week low',
         text: 'Floor of the trailing year. The distance shows the rebound already achieved from the worst level.',
+        levels: [
+          { range: '≤ +5%', label: 'capitulation zone, limited residual risk', tone: 'good' },
+          { range: '+5 to +15%', label: 'near the yearly floor', tone: 'good' },
+          { range: '> +15%', label: 'far from the floor', tone: 'neutral' },
+        ],
         tip: 'Near the floor = limited residual risk. Serves as the lower anchor for Fibonacci.',
       },
       sma50: {
@@ -427,7 +444,7 @@ const messages = {
       high52: 'Plus haut 52 sem.', low52: 'Plus bas 52 sem.',
     },
     regime: {
-      label: 'Régime', trend_up: 'Haussier', trend_down: 'Baissier',
+      label: 'Régime', trend_up: 'Tendance', trend_down: 'Tendance',
       range: 'Latéral', transition: 'Transition',
     },
     fund: {
@@ -448,7 +465,7 @@ const messages = {
     dash: {
       title: 'Dashboard', stockWatched: 'valeur surveillée', stocksWatched: 'valeurs surveillées',
       refreshAll: 'Actualiser tout', updatedAt: 'Màj {t} · auto 5 min',
-      addPlaceholder: 'Ajouter un ticker… (MSFT, 2222.SR)', add: '+ Ajouter',
+      add: '+ Ajouter',
       notLoaded: 'Non chargé', load: 'Charger →', serverError: 'Erreur serveur',
       emptyTitle: 'Votre watchlist est vide.',
       emptyHint: 'Ajoutez des tickers ci-dessus ou cliquez sur "☆ Suivre" lors d\u2019une analyse.',
@@ -540,11 +557,12 @@ const messages = {
       },
       atr14: {
         title: 'ATR 14 — volatilité',
-        text: 'De combien le titre bouge en moyenne chaque jour, en valeur absolue.',
+        text: 'De combien le titre bouge en moyenne chaque jour. Le % (ATR ÷ cours) le rend comparable d\u2019un titre à l\u2019autre.',
         formula: 'Moyenne sur 14j du True Range (amplitude réelle d\u2019une séance)',
         levels: [
-          { range: 'faible', label: 'bougies calmes, risque par trade réduit', tone: 'good' },
-          { range: 'élevé', label: 'fortes amplitudes, risque accru', tone: 'warn' },
+          { range: '< 1.5%', label: 'volatilité faible, bougies calmes', tone: 'good' },
+          { range: '1.5–3%', label: 'volatilité modérée', tone: 'neutral' },
+          { range: '> 3%', label: 'volatilité élevée, fortes amplitudes', tone: 'warn' },
         ],
         tip: 'Stop conseillé ≈ cours − 1.5 × ATR.',
       },
@@ -572,8 +590,13 @@ const messages = {
       },
       regime: {
         title: 'Régime de marché',
-        text: 'Une lecture du contexte combinant l\u2019ADX (force de tendance) et le Choppiness Index (range vs tendance). Il indique si les signaux RSI doivent se jouer en retour à la moyenne (range) ou en suivi de tendance (trend).',
-        tip: 'Range : RSI survendu = rebond. Tendance : ne pas fader le mouvement.',
+        text: 'Le marché est-il en tendance ou latéral ? Combine l\u2019ADX (force de tendance) et le Choppiness Index. La direction (hausse/baisse) est donnée par le badge de tendance voisin — celui-ci indique *comment* lire le RSI.',
+        levels: [
+          { range: 'Tendance', label: 'ADX ≥ 25 — suivre le mouvement, ne pas fader le RSI', tone: 'good' },
+          { range: 'Latéral', label: 'ADX < 20 ou CHOP ≥ 61.8 — jouer les extrêmes RSI (rebond)', tone: 'neutral' },
+          { range: 'Transition', label: 'indécis — attendre confirmation', tone: 'warn' },
+        ],
+        tip: 'Latéral : RSI survendu = rebond probable. Tendance : ne pas fader le mouvement.',
       },
       keyLevels: {
         title: 'Niveaux clés',
@@ -584,8 +607,9 @@ const messages = {
         title: 'SMA 200 jours',
         text: 'La moyenne mobile de référence du long terme, filtre des investisseurs institutionnels.',
         levels: [
-          { range: 'cours >', label: 'tendance haussière', tone: 'good' },
-          { range: 'cours <', label: 'territoire baissier', tone: 'bad' },
+          { range: '−3 à +3%', label: 'zone de confluence, retest clé', tone: 'good' },
+          { range: 'cours > SMA', label: 'tendance haussière préservée', tone: 'good' },
+          { range: 'cours < SMA', label: 'territoire baissier', tone: 'bad' },
         ],
         tip: 'Tracée en orange pointillé sur le graphique.',
       },
@@ -597,11 +621,21 @@ const messages = {
       high52: {
         title: 'Plus haut 52 semaines',
         text: 'Sommet de l\u2019année glissante. La distance affichée mesure la décote actuelle depuis ce sommet.',
+        levels: [
+          { range: '≤ −25%', label: 'correction majeure, fort potentiel de reprise', tone: 'good' },
+          { range: '−25 à −8%', label: 'consolidation saine', tone: 'neutral' },
+          { range: '> −8%', label: 'proche des sommets, marge limitée', tone: 'warn' },
+        ],
         tip: 'À −5% avec des indicateurs solides = setup de cassure potentiel. Sert d\u2019ancrage haut au Fibonacci.',
       },
       low52: {
         title: 'Plus bas 52 semaines',
         text: 'Plancher de l\u2019année glissante. La distance montre le rebond déjà réalisé depuis le pire niveau.',
+        levels: [
+          { range: '≤ +5%', label: 'zone de capitulation, risque résiduel limité', tone: 'good' },
+          { range: '+5 à +15%', label: 'proche du plancher annuel', tone: 'good' },
+          { range: '> +15%', label: 'loin du plancher', tone: 'neutral' },
+        ],
         tip: 'Proche du plancher = risque résiduel limité. Sert d\u2019ancrage bas au Fibonacci.',
       },
       sma50: {

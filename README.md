@@ -151,7 +151,7 @@ flowchart LR
 
 Two frontend serving modes are provided:
 
-- **Production (single image)** — the multi-stage `Dockerfile` builds the SPA (`node:22`) then copies it into `/app/static`, served directly by FastAPI (`StaticFiles`, mounted last so it does not shadow the API routes).
+- **Production (single image)** — the multi-stage `Dockerfile` builds the SPA (`node:24`) then copies it into `/app/static`, served directly by FastAPI (`StaticFiles`, mounted last so it does not shadow the API routes).
 - **Nginx alternative** — `frontend/Dockerfile` + `nginx.conf` serve the SPA behind Nginx, which *proxies* the `/ticker|/health|/cache|/docs` routes to the API container.
 - **Persistence** — a lightweight **SQLite** database (`backend/db.py`) stores the **favorites (watchlist)** and a memoized **`TICKER = Name`** cache, kept on the `./data` volume (`DB_PATH`, default `/app/data/hodler.db`).
 
@@ -477,7 +477,7 @@ docker compose up --build
 **Backend**
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 uvicorn api:app --reload --port 8000 --app-dir backend
 ```
 
