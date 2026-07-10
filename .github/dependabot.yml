@@ -1,0 +1,46 @@
+version: 2
+updates:
+  # ── Python API dependencies (requirements.txt at repo root) ──
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ── Frontend dependencies (Vue / Vite) ──
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ── Docker base images (root Dockerfile + frontend/Dockerfile) ──
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /frontend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(docker)"
+
+  # ── GitHub Actions used in the workflows ──
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(ci)"

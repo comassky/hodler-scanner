@@ -21,7 +21,25 @@ const themeLabel = id => ({ dark: t('header.themeDark'), gray: t('header.themeGr
 
       <!-- Logo -->
       <div class="flex items-center gap-2.5 shrink-0">
-        <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs select-none">S</div>
+        <svg class="w-7 h-7 select-none" viewBox="0 0 64 64" role="img" aria-label="Hodler Scanner">
+          <defs>
+            <linearGradient id="hdr-bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#111a26" />
+              <stop offset="1" stop-color="#0a0f16" />
+            </linearGradient>
+            <linearGradient id="hdr-acc" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#10b981" />
+              <stop offset="1" stop-color="#34d399" />
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="15" fill="url(#hdr-bg)" />
+          <rect x="1.5" y="1.5" width="61" height="61" rx="13.5" fill="none" stroke="#ffffff" stroke-opacity="0.06" />
+          <polyline points="12,46 26,34 36,40 51,19" fill="none" stroke="url(#hdr-acc)" stroke-width="5"
+            stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="12" cy="46" r="2.8" fill="#10b981" />
+          <path d="M51 11 L58 19 L51 27 L44 19 Z" fill="url(#hdr-acc)" />
+          <path d="M51 15 L54.5 19 L51 23 L47.5 19 Z" fill="#0a0f16" fill-opacity="0.35" />
+        </svg>
         <span class="font-semibold text-zinc-100 tracking-tight text-sm hidden sm:block">Hodler Scanner</span>
       </div>
 
