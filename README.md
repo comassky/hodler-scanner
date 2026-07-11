@@ -43,7 +43,7 @@ The project couples a **quantitative analysis engine in Python** (vectorized `pa
 > - 🚫 The author accepts **no responsibility or liability** for any loss or damage arising from the use of this tool.
 > - 🔎 **Always do your own research** and **consult a licensed financial advisor** before making any investment decision.
 >
-> _By using this project, you acknowledge that you do so entirely at your own risk._ → [Read the full disclaimer](#-disclaimer)
+> _By using this project, you acknowledge that you do so entirely at your own risk._
 
 ---
 
@@ -66,7 +66,6 @@ The project couples a **quantitative analysis engine in Python** (vectorized `pa
 11. [Configuration](#-configuration)
 12. [Caching strategy](#-caching-strategy)
 13. [Command-line usage](#-command-line-usage-cli)
-14. [Disclaimer](#-disclaimer)
 
 ---
 
@@ -541,16 +540,6 @@ python backend/script.py
 ```
 
 It prints colored (ANSI) cards per ticker: status, diagnostics, targets and estimated return.
-
----
-
-## ⚠️ Disclaimer
-
-> **Not financial advice.** This tool is provided **for educational and informational purposes only** and does **not constitute investment, financial, legal or tax advice**, nor a recommendation to buy or sell any security.
->
-> **No liability.** The author accepts **no responsibility or liability** for any loss or damage arising from the use of this tool. The analyses rely on historical market data (via Yahoo Finance) and technical heuristics that **guarantee no future outcome** — past performance is not indicative of future results.
->
-> **Just one tool among many.** Hodler Scanner is **only one input among others** and should never be used in isolation. Always cross-check with other sources, **do your own research**, and consult a licensed financial advisor before making any investment decision.
 
 ---
 
