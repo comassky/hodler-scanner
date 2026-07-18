@@ -42,6 +42,9 @@ jobs:
         with:
           node-version-file: frontend/.nvmrc
 
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
       - name: Configure git identity
         run: |
           git config user.name  "github-actions[bot]"
@@ -50,7 +53,7 @@ jobs:
       - name: Bump version
         id: bump
         run: |
-          raw=$(npm version "${{ inputs.bump }}" --no-git-tag-version --prefix frontend)
+          raw=$(cd frontend && pnpm version "${{ inputs.bump }}" --no-git-tag-version)
           version="${raw#v}"                           # v1.1.0 -> 1.1.0
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -58,7 +61,7 @@ jobs:
         env:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
-          git add frontend/package.json frontend/package-lock.json
+          git add frontend/package.json frontend/pnpm-lock.yaml
           git commit -m "chore(release): $VERSION"
           git tag "$VERSION"
           git push origin HEAD "$VERSION"
@@ -105,7 +108,7 @@ jobs:
         run: |
           IFS=. read -r major minor patch <<< "$VERSION"
           next="$major.$minor.$((patch + 1))-SNAPSHOT" # 1.1.1-SNAPSHOT
-          npm version "$next" --no-git-tag-version --allow-same-version --prefix frontend
-          git add frontend/package.json frontend/package-lock.json
+          (cd frontend && pnpm version "$next" --no-git-tag-version --allow-same-version)
+          git add frontend/package.json frontend/pnpm-lock.yaml
           git commit -m "chore: open next development version $next"
           git push origin HEAD

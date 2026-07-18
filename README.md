@@ -12,7 +12,7 @@
   <img alt="Python"       src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="FastAPI"      src="https://img.shields.io/badge/FastAPI-0.111+-009688?style=flat-square&logo=fastapi&logoColor=white">
   <img alt="Vue.js"       src="https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white">
-  <img alt="Vite"         src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white">
+  <img alt="Vite"         src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white">
   <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white">
   <img alt="Chart.js"     src="https://img.shields.io/badge/Chart.js-4.4-FF6384?style=flat-square&logo=chartdotjs&logoColor=white">
   <img alt="Docker"       src="https://img.shields.io/badge/Docker-multi--stage-2496ED?style=flat-square&logo=docker&logoColor=white">
@@ -92,8 +92,9 @@ The result is condensed into a **single opportunity score**, transparently broke
 - 🗂️ **Batch analysis** (up to 50 tickers in parallel).
 - 📊 **Interactive charts**: price + SMA 200/50, volume, **Fibonacci levels**, **Bollinger bands** (togglable), RSI 14 and MACD histogram sub-charts, plus an annotated **price/RSI divergence** detector.
 - ↕️ **Dashboard sorting** — sort the watchlist by score (highest first by default), change, or name.
+- � **Recent news feed** per ticker (Yahoo Finance headlines with publisher, date and thumbnail).
 - 🔄 **Forced refresh** (cache bypass) per ticker.
-- ⭐ **Persisted watchlist** (localStorage) + search history.
+- ⭐ **Persisted watchlist** (localStorage front-side + SQLite server-side) + search history.
 - 🌗 **Light / dark theme** with dynamic chart re-coloring.
 - 🌍 **Full English / French localization** — both the UI and the backend-generated analysis text, with the choice persisted in localStorage.
 - 💡 **Structured educational tooltips** (plain-language definition, formula, interpretation scale, tip) on every indicator.
@@ -138,8 +139,8 @@ flowchart LR
     YF[("Yahoo Finance<br/>via yfinance")]
     VOL[["💾 ./data volume<br/>hodler.db"]]
 
-    VUE -- "GET /ticker/… /chart /fundamentals" --> API
-    VUE -- "GET/POST/DELETE /favorites" --> API
+    VUE -- \"GET /ticker/… /chart /fundamentals /news\" --> API
+    VUE -- \"GET/PUT/POST/DELETE /favorites\" --> API
     API --> CACHE
     API --> I18N
     API -- "favorites · ticker names" --> DB
@@ -166,7 +167,7 @@ Two frontend serving modes are provided:
 | 🧮 **Compute** | Python 3.14, `pandas ≥ 2.0`, `numpy ≥ 1.26` (vectorized indicators) |
 | 🌐 **API** | FastAPI ≥ 0.111, Uvicorn (ASGI), Pydantic (validation) |
 | 🌍 **i18n** | Backend JSON language files (`backend/locales/en.json`, `backend/locales/fr.json`) loaded by `backend/i18n.py` |
-| 🖼️ **Frontend** | Vue 3.5, Vite 6, Tailwind CSS v4.1, Chart.js 4.4 + `chartjs-plugin-zoom` |
+| 🖼️ **Frontend** | Vue 3.5, Vite 8, Tailwind CSS v4, Chart.js 4.4 + `chartjs-plugin-zoom`, TanStack Vue Query, VueUse |
 | 🐳 **Containerization** | Docker multi-stage, Docker Compose |
 
 ---
@@ -358,10 +359,15 @@ Default base URL: `http://localhost:8000` — interactive documentation at **`/d
 | `GET` | `/ticker/{code}?lang=en` | Full technical analysis (`?refresh=true` to bypass cache) |
 | `GET` | `/ticker/{code}/chart?period=1y` | Historical series (`3mo\|6mo\|1y\|2y\|max`, `?refresh=true`) |
 | `GET` | `/ticker/{code}/fundamentals` | P/E, market cap, sector… (`?refresh=true`) |
+| `GET` | `/ticker/{code}/news` | Recent news headlines for the stock (`?refresh=true`) |
 | `POST` | `/tickers` | Batch analysis (≤ 50 tickers, `{ "tickers": [...], "lang": "en", "refresh": false }`) |
 | `GET` | `/cache` | Cache state (entries, age, remaining TTL) |
 | `DELETE` | `/cache` | Clear the entire cache |
 | `DELETE` | `/cache/{code}` | Invalidate a ticker |
+| `GET` | `/favorites` | List the server-side watchlist |
+| `PUT` | `/favorites` | Replace the entire favorites list (`{ "tickers": [...] }`) |
+| `POST` | `/favorites/{code}` | Add a favorite |
+| `DELETE` | `/favorites/{code}` | Remove a favorite |
 
 <details>
 <summary><b>Example response for <code>GET /ticker/MC.PA</code> (excerpt)</b></summary>
@@ -413,6 +419,7 @@ Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 - `DashboardView` / `DashboardCard` — watchlist dashboard view (with score/change/name sorting)
 - `TickerSearch` — search bar + history
 - `TickerCharts` — Chart.js charts (price/SMA/volume + Fibonacci + Bollinger, RSI, MACD, divergences), zoom/pan, Fibonacci & Bollinger toggles
+- `NewsList` — recent news feed (publisher, date, thumbnail) for the analyzed ticker
 - `InfoTip` — structured educational tooltips (title, formula, colored scale, tip)
 - `AppHeader` — header + theme and language switchers
 
@@ -423,6 +430,8 @@ Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 - `useWatchlist` — persisted watchlist
 
 **Persistence** (localStorage): `smm_history`, `smm_watchlist`, `smm_theme`, `smm_locale`, `smm_dash_sort`.
+
+**Data fetching**: [TanStack Vue Query](https://tanstack.com/query) manages server state (caching, retries, background refetch) with a 60 s stale time; [VueUse](https://vueuse.org/) provides reactive browser utilities.
 
 **Theming**: Tailwind v4 compiles utilities into CSS variables (`--color-zinc-*`), overridden under `[data-theme="light"]` for **runtime** re-theming, including chart re-coloring (CSS variables read at render time).
 
@@ -489,13 +498,13 @@ uvicorn api:app --reload --port 8000 --app-dir backend
 **Frontend** (hot-reload, proxy to the API)
 ```bash
 cd frontend
-npm install
-npm run dev        # http://localhost:3000 (proxy /ticker, /health, /cache → :8000)
+pnpm install
+pnpm run dev       # http://localhost:3000 (proxy /ticker, /health, /cache → :8000)
 ```
 
 **Frontend production build**
 ```bash
-cd frontend && npm run build   # generates frontend/dist
+cd frontend && pnpm run build   # generates frontend/dist
 ```
 
 > When you change any backend module (routes, business logic, translations or the scoring engine), rebuild the Docker image so the updated `backend/` sources and the `backend/locales/` folder are included in the container.

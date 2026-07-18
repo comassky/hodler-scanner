@@ -1,10 +1,12 @@
 # ── Stage 1: build the Vue frontend ─────────────────────────────
 FROM node:25-alpine AS frontend-builder
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /app
-COPY frontend/package*.json ./
-RUN npm ci --no-audit --no-fund
+RUN corepack enable
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY frontend/ .
-RUN npm run build
+RUN pnpm run build
 
 # ── Stage 2: Python API + static frontend ───────────────────────
 FROM python:3.14-slim
