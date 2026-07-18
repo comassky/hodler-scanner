@@ -1,8 +1,7 @@
 # ── Stage 1: build the Vue frontend ─────────────────────────────
 FROM node:25-alpine AS frontend-builder
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /app
-RUN npm install -g corepack && corepack enable
+RUN npm install -g pnpm
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
