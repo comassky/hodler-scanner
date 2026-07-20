@@ -1,0 +1,5 @@
+# Only install package versions that have been published for at least 1 day.
+# This reduces the risk of pulling a freshly published, potentially
+# compromised release. `ncu` also reads this value when running without
+# an explicit --cooldown flag.
+minimumReleaseAge: 1440
