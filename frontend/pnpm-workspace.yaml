@@ -3,3 +3,9 @@
 # compromised release. `ncu` also reads this value when running without
 # an explicit --cooldown flag.
 minimumReleaseAge: 1440
+
+# Dependencies explicitly reviewed and allowed to run install/build scripts.
+# vue-demi (pulled in by @vueuse/core) runs a postinstall to select the
+# correct Vue 2/3 entry point.
+allowBuilds:
+  vue-demi: true
