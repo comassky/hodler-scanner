@@ -2,10 +2,7 @@
 FROM node:25-alpine AS frontend-builder
 WORKDIR /app
 RUN npm install -g pnpm
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
-# The committed lockfile is trusted; skip re-running the supply-chain
-# (minimumReleaseAge) check on its entries during the frozen CI install.
-ENV pnpm_config_trust_lockfile=true
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY frontend/ .
 RUN pnpm run build
