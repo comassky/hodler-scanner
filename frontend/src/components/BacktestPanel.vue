@@ -1,0 +1,282 @@
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import Chart from 'chart.js/auto'
+import InfoTip from './InfoTip.vue'
+import { useTheme } from '../composables/useTheme.js'
+import { useI18n } from '../composables/useI18n.js'
+
+const { theme } = useTheme()
+const { t, locale } = useI18n()
+
+const props = defineProps({
+  data:    { type: Object,  default: null },
+  loading: { type: Boolean, default: false },
+  error:   { type: String,  default: null },
+})
+
+// ── Horizon selector (trading days → ≈ months label) ──────────────
+const HORIZON_LABELS = { 63: '3M', 126: '6M', 252: '12M' }
+const horizon = ref('126')
+watch(() => props.data, v => {
+  if (v?.primary_horizon) horizon.value = String(v.primary_horizon)
+})
+
+// ── Band presentation (aligned with the score status colors) ──────
+const BANDS = {
+  strong:     { color: '#34d399', label: () => t('backtest.bandStrong') },
+  accumulate: { color: '#38bdf8', label: () => t('backtest.bandAccumulate') },
+  watch:      { color: '#fbbf24', label: () => t('backtest.bandWatch') },
+  avoid:      { color: '#f87171', label: () => t('backtest.bandAvoid') },
+}
+
+function pct(v) {
+  if (v == null) return '—'
+  return (v > 0 ? '+' : '') + v.toFixed(2) + '%'
+}
+
+// ── Summary derived from the selected horizon ─────────────────────
+const summary = computed(() => {
+  const d = props.data
+  if (!d) return null
+  const h = horizon.value
+  return {
+    correlation: d.correlation?.[h] ?? null,
+    baseline: d.baseline?.by_horizon?.[h]?.avg_return ?? null,
+    baselineWin: d.baseline?.by_horizon?.[h]?.win_rate ?? null,
+    samples: d.samples,
+    start: d.period_start,
+    end: d.period_end,
+  }
+})
+
+// ── Charts ────────────────────────────────────────────────────────
+const barCanvas = ref(null)
+const lineCanvas = ref(null)
+let barChart = null
+let lineChart = null
+
+function cssVar(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
+
+function themeColors() {
+  return {
+    tick:  cssVar('--color-zinc-500', '#71717a'),
+    grid:  'rgba(113,113,122,0.18)',
+    panel: cssVar('--color-zinc-900', '#18181b'),
+    border: cssVar('--color-zinc-700', '#3f3f46'),
+    body:  cssVar('--color-zinc-100', '#f4f4f5'),
+  }
+}
+
+function destroy() {
+  barChart?.destroy(); lineChart?.destroy()
+  barChart = lineChart = null
+}
+
+function renderCharts() {
+  if (!props.data || !barCanvas.value || !lineCanvas.value) return
+  destroy()
+  const c = themeColors()
+  const h = horizon.value
+  const d = props.data
+
+  // ── Bar chart: average forward return per score band ────────────
+  const bands = d.bands.filter(b => b.count > 0)
+  const barLabels = bands.map(b => BANDS[b.key]?.label() ?? b.key)
+  const barValues = bands.map(b => b.by_horizon?.[h]?.avg_return ?? null)
+  const barColors = bands.map(b => (BANDS[b.key]?.color ?? '#a1a1aa'))
+  const baseline = d.baseline?.by_horizon?.[h]?.avg_return ?? null
+
+  const baselinePlugin = {
+    id: 'baselineLine',
+    afterDatasetsDraw(chart) {
+      if (baseline == null) return
+      const { ctx, chartArea, scales: { y } } = chart
+      if (!chartArea) return
+      const yPx = y.getPixelForValue(baseline)
+      ctx.save()
+      ctx.strokeStyle = 'rgba(161,161,170,0.7)'
+      ctx.lineWidth = 1.2
+      ctx.setLineDash([5, 4])
+      ctx.beginPath(); ctx.moveTo(chartArea.left, yPx); ctx.lineTo(chartArea.right, yPx); ctx.stroke()
+      ctx.setLineDash([])
+      ctx.fillStyle = 'rgba(161,161,170,0.9)'
+      ctx.font = '10px ui-monospace, monospace'
+      ctx.textAlign = 'right'
+      ctx.fillText(`${t('backtest.baseline')} ${pct(baseline)}`, chartArea.right - 4, yPx - 4)
+      ctx.restore()
+    },
+  }
+
+  barChart = new Chart(barCanvas.value, {
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [{
+        data: barValues,
+        backgroundColor: barColors.map(col => col + 'cc'),
+        borderColor: barColors,
+        borderWidth: 1,
+        borderRadius: 5,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 350 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: c.panel, borderColor: c.border, borderWidth: 1,
+          titleColor: c.tick, bodyColor: c.body, padding: 10,
+          callbacks: {
+            afterLabel: (i) => {
+              const b = bands[i.dataIndex]
+              const st = b.by_horizon?.[h] ?? {}
+              return [
+                `${t('backtest.samples')}: ${st.count ?? 0}`,
+                `${t('backtest.winRate')}: ${st.win_rate ?? '—'}%`,
+                `${t('backtest.median')}: ${pct(st.median_return)}`,
+              ]
+            },
+            label: (i) => ` ${t('backtest.avgReturn')}: ${pct(i.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: c.tick, font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+        y: {
+          ticks: { color: c.tick, font: { size: 10 }, callback: v => v + '%' },
+          grid: { color: c.grid }, border: { display: false },
+        },
+      },
+    },
+    plugins: [baselinePlugin],
+  })
+
+  // ── Line chart: score over time + price (dual axis) ─────────────
+  const dates = d.series.map(p => p.date)
+  const scores = d.series.map(p => p.score)
+  const prices = d.series.map(p => p.price)
+
+  lineChart = new Chart(lineCanvas.value, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: t('backtest.score'), data: scores, yAxisID: 'yScore',
+          borderColor: '#818cf8', backgroundColor: 'rgba(129,140,248,0.08)',
+          borderWidth: 1.5, tension: 0.25, fill: true, pointRadius: 0, pointHitRadius: 6, order: 1,
+        },
+        {
+          label: t('backtest.price'), data: prices, yAxisID: 'yPrice',
+          borderColor: '#52525b', borderWidth: 1.2, tension: 0.1, fill: false, pointRadius: 0, pointHitRadius: 6, order: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 350 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true, position: 'top', align: 'end',
+          labels: { color: c.tick, boxWidth: 18, boxHeight: 2, padding: 12, font: { size: 10 } },
+        },
+        tooltip: {
+          backgroundColor: c.panel, borderColor: c.border, borderWidth: 1,
+          titleColor: c.tick, bodyColor: c.body, padding: 10,
+          callbacks: {
+            label: (i) => i.datasetIndex === 0
+              ? ` ${t('backtest.score')}: ${i.parsed.y}`
+              : ` ${t('backtest.price')}: ${i.parsed.y?.toFixed(2) ?? '—'}`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: c.tick, maxTicksLimit: 8, maxRotation: 0, font: { size: 10 } }, grid: { color: c.grid }, border: { display: false } },
+        yScore: { position: 'left', min: 0, max: 100, ticks: { color: '#818cf8', maxTicksLimit: 5, font: { size: 10 } }, grid: { color: c.grid }, border: { display: false } },
+        yPrice: { position: 'right', ticks: { color: '#52525b', maxTicksLimit: 5, font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+      },
+    },
+  })
+}
+
+watch(() => props.data, () => { if (!props.loading) nextTick(renderCharts) }, { flush: 'post' })
+watch(() => props.loading, l => { if (!l && props.data) nextTick(renderCharts) }, { flush: 'post' })
+watch(horizon, () => { if (props.data) nextTick(renderCharts) })
+watch([theme, locale], () => { if (props.data && !props.loading) nextTick(renderCharts) })
+onMounted(() => { if (props.data && !props.loading) nextTick(renderCharts) })
+onUnmounted(destroy)
+
+const HORIZONS = [63, 126, 252]
+</script>
+
+<template>
+  <div id="section-backtest" class="scroll-mt-28 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+    <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+      <h2 class="flex items-center text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+        {{ t('backtest.title') }}<InfoTip v-bind="t('info.backtest')" />
+      </h2>
+      <div v-if="data" class="flex gap-1">
+        <button v-for="hz in HORIZONS" :key="hz"
+          @click="horizon = String(hz)"
+          :class="['px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
+            horizon === String(hz) ? 'bg-indigo-600 text-white' : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300']">
+          {{ HORIZON_LABELS[hz] }}
+        </button>
+      </div>
+    </div>
+    <p class="text-xs text-zinc-600 mb-4">{{ t('backtest.subtitle') }}</p>
+
+    <!-- Loading -->
+    <div v-if="loading" class="h-40 flex items-center justify-center">
+      <div class="w-6 h-6 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Error / insufficient history -->
+    <div v-else-if="error" class="h-20 flex items-center justify-center text-center text-sm text-zinc-600 px-4">
+      {{ error }}
+    </div>
+
+    <template v-else-if="data">
+      <!-- Summary stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.correlation') }}</p>
+          <p :class="['text-lg font-bold font-mono', summary.correlation >= 0.2 ? 'text-emerald-400' : summary.correlation >= 0 ? 'text-zinc-300' : 'text-red-400']">
+            {{ summary.correlation == null ? '—' : summary.correlation.toFixed(2) }}
+          </p>
+        </div>
+        <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.baseline') }}</p>
+          <p class="text-lg font-bold font-mono text-zinc-300">{{ pct(summary.baseline) }}</p>
+        </div>
+        <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.samples') }}</p>
+          <p class="text-lg font-bold font-mono text-zinc-300">{{ summary.samples }}</p>
+        </div>
+        <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.period') }}</p>
+          <p class="text-xs font-mono text-zinc-400 mt-1">{{ summary.start }}<br>→ {{ summary.end }}</p>
+        </div>
+      </div>
+
+      <!-- Average forward return per band -->
+      <p class="text-xs text-zinc-500 mb-2">{{ t('backtest.avgReturnByBand', { h: HORIZON_LABELS[horizon] }) }}</p>
+      <div class="h-56 mb-6"><canvas ref="barCanvas"></canvas></div>
+
+      <!-- Score over time vs price -->
+      <p class="text-xs text-zinc-500 mb-2">{{ t('backtest.scoreOverTime') }}</p>
+      <div class="h-64"><canvas ref="lineCanvas"></canvas></div>
+
+      <p class="text-[11px] text-zinc-600 mt-4 leading-relaxed border-t border-zinc-800/60 pt-3">
+        {{ t('backtest.disclaimer') }}
+      </p>
+    </template>
+
+    <div v-else class="h-20 flex items-center justify-center text-zinc-700 text-sm">
+      {{ t('backtest.loadError') }}
+    </div>
+  </div>
+</template>

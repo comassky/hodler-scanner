@@ -94,6 +94,7 @@ The result is condensed into a **single opportunity score**, transparently broke
 - ↕️ **Dashboard sorting** — sort the watchlist by score (highest first by default), change, or name.
 - � **Recent news feed** per ticker (Yahoo Finance headlines with publisher, date and thumbnail).
 - 🔄 **Forced refresh** (cache bypass) per ticker.
+- 🧪 **Light score backtest** — replays the exact scoring engine over ~5 years of history and shows the realized forward returns (3M / 6M / 12M) grouped by score band, with a score-vs-price timeline and a score/return correlation — a transparency check on the engine.
 - ⭐ **Persisted watchlist** (localStorage front-side + SQLite server-side) + search history.
 - 🌗 **Light / dark theme** with dynamic chart re-coloring.
 - 🌍 **Full English / French localization** — both the UI and the backend-generated analysis text, with the choice persisted in localStorage.
@@ -360,6 +361,7 @@ Default base URL: `http://localhost:8000` — interactive documentation at **`/d
 | `GET` | `/ticker/{code}/chart?period=1y` | Historical series (`3mo\|6mo\|1y\|2y\|max`, `?refresh=true`) |
 | `GET` | `/ticker/{code}/fundamentals` | P/E, market cap, sector… (`?refresh=true`) |
 | `GET` | `/ticker/{code}/news` | Recent news headlines for the stock (`?refresh=true`) |
+| `GET` | `/ticker/{code}/backtest` | Light historical backtest of the score (`?refresh=true`) |
 | `POST` | `/tickers` | Batch analysis (≤ 50 tickers, `{ "tickers": [...], "lang": "en", "refresh": false }`) |
 | `GET` | `/cache` | Cache state (entries, age, remaining TTL) |
 | `DELETE` | `/cache` | Clear the entire cache |
@@ -534,6 +536,7 @@ Five thread-safe in-memory TTL caches (`TTLCache`, in [`backend/cache.py`](backe
 | `chart_cache` | Historical series (key `TICKER:period`) | **1 h** |
 | `fund_cache` | Fundamentals | **2 h** |
 | `news_cache` | Recent news | **30 min** |
+| `backtest_cache` | Historical score backtests | **6 h** |
 | `raw_cache` | Raw OHLCV DataFrames | **15 min** |
 
 The `refresh=true` parameter (or the UI **Refresh** button) forces recomputation, ignoring these caches. At startup, `_prewarm()` loads the configured tickers in the background (max 4 concurrent downloads).

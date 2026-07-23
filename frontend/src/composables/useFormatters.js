@@ -23,6 +23,23 @@ export function useFormatters() {
     return             { text: 'text-amber-400',   bg: 'bg-amber-500/15 ring-1 ring-amber-500/30' }
   }
 
+  // Full status palette for the analysis view (ring + solid bar + status label key).
+  function scoreStatus(score) {
+    const s = score ?? 0
+    if (s >= 80) return { ring: 'ring-1 ring-emerald-500', text: 'text-emerald-400', bg: 'bg-emerald-500/10', bar: 'bg-emerald-500', labelKey: 'scoreLabel.strong' }
+    if (s >= 60) return { ring: 'ring-1 ring-sky-500',     text: 'text-sky-400',     bg: 'bg-sky-500/10',     bar: 'bg-sky-500',     labelKey: 'scoreLabel.accumulate' }
+    if (s >= 40) return { ring: 'ring-1 ring-amber-500',   text: 'text-amber-400',   bg: 'bg-amber-500/10',   bar: 'bg-amber-500',   labelKey: 'scoreLabel.watch' }
+    return             { ring: 'ring-1 ring-red-500',      text: 'text-red-400',     bg: 'bg-red-500/10',     bar: 'bg-red-500',     labelKey: 'scoreLabel.avoid' }
+  }
+
+  function fmtMarketCap(v) {
+    if (v == null) return '—'
+    if (v >= 1e12) return (v / 1e12).toFixed(2) + ' T'
+    if (v >= 1e9)  return (v / 1e9).toFixed(2)  + ' Md'
+    if (v >= 1e6)  return (v / 1e6).toFixed(2)  + ' M'
+    return v.toLocaleString()
+  }
+
   const tendanceBadgeClass = t => t?.startsWith('↑')
     ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30'
     : 'bg-red-500/10 text-red-400 ring-1 ring-red-500/30'
@@ -37,6 +54,7 @@ export function useFormatters() {
   return {
     fmt, fmtPct,
     varColor, rsiClass, rsiBarClass, distClass, macdClass,
-    scoreCompClass, scoreColorFor, tendanceBadgeClass, regimeBadgeClass,
+    scoreCompClass, scoreColorFor, scoreStatus, fmtMarketCap,
+    tendanceBadgeClass, regimeBadgeClass,
   }
 }

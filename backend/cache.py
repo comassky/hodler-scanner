@@ -51,8 +51,9 @@ class TTLCache:
 
 
 # Shared cache instances (import these, do not create your own).
-analysis_cache = TTLCache(ttl_seconds=900)   # 15 min — analyses
-chart_cache    = TTLCache(ttl_seconds=3600)  # 1 h   — historical data
-fund_cache     = TTLCache(ttl_seconds=7200)  # 2 h   — fundamentals
-news_cache     = TTLCache(ttl_seconds=1800)  # 30 min — news
-raw_cache      = TTLCache(ttl_seconds=900)   # 15 min — raw OHLCV DataFrames
+analysis_cache = TTLCache(ttl_seconds=900)    # 15 min — analyses
+chart_cache    = TTLCache(ttl_seconds=3600)   # 1 h   — historical data
+fund_cache     = TTLCache(ttl_seconds=7200)   # 2 h   — fundamentals
+news_cache     = TTLCache(ttl_seconds=1800)   # 30 min — news
+raw_cache      = TTLCache(ttl_seconds=900)    # 15 min — raw OHLCV DataFrames
+backtest_cache = TTLCache(ttl_seconds=21600)  # 6 h   — historical backtests

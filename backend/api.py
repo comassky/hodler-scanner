@@ -20,6 +20,7 @@ from pydantic import BaseModel, field_validator
 
 import db
 from analysis import analyse_ticker
+from backtest import run_backtest
 from cache import analysis_cache
 from charts import chart_data
 from fundamentals import fetch_fundamentals
@@ -167,6 +168,21 @@ def ticker_fundamentals(ticker_code: str, refresh: bool = False):
 def ticker_news(ticker_code: str, refresh: bool = False):
     """Latest news for the stock via yfinance (Yahoo Finance)."""
     return fetch_news(ticker_code, refresh)
+
+
+@app.get("/ticker/{ticker_code}/backtest", summary="Light score backtest", tags=["analyse"])
+async def ticker_backtest(ticker_code: str, refresh: bool = False):
+    """
+    Replay the Buy & Hold score over ~5 years of history and report the realized
+    forward returns (≈3M / 6M / 12M) grouped by score band — a credibility check
+    on the scoring engine.
+    """
+    try:
+        return await asyncio.to_thread(run_backtest, ticker_code, refresh)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── Cache management ───────────────────────────────────────────────
