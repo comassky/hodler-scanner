@@ -4,6 +4,12 @@
 # an explicit --cooldown flag.
 minimumReleaseAge: 1440
 
+# The committed pnpm-lock.yaml is trusted (it is generated locally under the
+# same minimumReleaseAge policy). Without this, `pnpm install --frozen-lockfile`
+# in CI re-verifies every lockfile entry and fails whenever a freshly added
+# transitive dependency is still within the minimumReleaseAge window.
+trustLockfile: true
+
 # Dependencies explicitly reviewed and allowed to run install/build scripts.
 # vue-demi (pulled in by @vueuse/core) runs a postinstall to select the
 # correct Vue 2/3 entry point.
