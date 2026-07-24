@@ -42,6 +42,13 @@ def init_db() -> None:
                 position INTEGER NOT NULL DEFAULT 0,
                 added_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
+            CREATE TABLE IF NOT EXISTS backtest_scores (
+                ticker TEXT NOT NULL,
+                date   TEXT NOT NULL,
+                price  REAL NOT NULL,
+                score  INTEGER NOT NULL,
+                PRIMARY KEY (ticker, date)
+            );
             """
         )
 
@@ -121,3 +128,34 @@ def set_favorites(tickers: list) -> list:
             [(code, i) for i, code in enumerate(ordered)],
         )
     return ordered
+
+
+# ── Backtest scores (deterministic per-date cache) ──────────────────
+def get_backtest_scores(ticker: str) -> dict:
+    """Return stored scores for a ticker: ``{date: (price, score)}``."""
+    code = ticker.strip().upper()
+    if not code:
+        return {}
+    with _lock, _connect() as conn:
+        rows = conn.execute(
+            "SELECT date, price, score FROM backtest_scores WHERE ticker = ?",
+            (code,),
+        ).fetchall()
+    return {d: (p, s) for d, p, s in rows}
+
+
+def save_backtest_scores(ticker: str, rows: list) -> None:
+    """Upsert a batch of ``(date, price, score)`` rows for a ticker."""
+    code = ticker.strip().upper()
+    if not code or not rows:
+        return
+    payload = [(code, str(d), float(p), int(s)) for d, p, s in rows]
+    with _lock, _connect() as conn:
+        conn.executemany(
+            "INSERT INTO backtest_scores (ticker, date, price, score) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(ticker, date) DO UPDATE SET "
+            "price = excluded.price, score = excluded.score",
+            payload,
+        )
+

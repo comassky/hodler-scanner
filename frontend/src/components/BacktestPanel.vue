@@ -243,31 +243,31 @@ const HORIZONS = [63, 126, 252]
       <!-- Summary stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
-          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.correlation') }}</p>
+          <p class="flex items-center text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.correlation') }}<InfoTip v-bind="t('info.btCorrelation')" /></p>
           <p :class="['text-lg font-bold font-mono', summary.correlation >= 0.2 ? 'text-emerald-400' : summary.correlation >= 0 ? 'text-zinc-300' : 'text-red-400']">
             {{ summary.correlation == null ? '—' : summary.correlation.toFixed(2) }}
           </p>
         </div>
         <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
-          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.baseline') }}</p>
+          <p class="flex items-center text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.baseline') }}<InfoTip v-bind="t('info.btBaseline')" /></p>
           <p class="text-lg font-bold font-mono text-zinc-300">{{ pct(summary.baseline) }}</p>
         </div>
         <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
-          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.samples') }}</p>
+          <p class="flex items-center text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.samples') }}<InfoTip v-bind="t('info.btSamples')" /></p>
           <p class="text-lg font-bold font-mono text-zinc-300">{{ summary.samples }}</p>
         </div>
         <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
-          <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.period') }}</p>
+          <p class="flex items-center text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">{{ t('backtest.period') }}<InfoTip v-bind="t('info.btPeriod')" /></p>
           <p class="text-xs font-mono text-zinc-400 mt-1">{{ summary.start }}<br>→ {{ summary.end }}</p>
         </div>
       </div>
 
       <!-- Average forward return per band -->
-      <p class="text-xs text-zinc-500 mb-2">{{ t('backtest.avgReturnByBand', { h: HORIZON_LABELS[horizon] }) }}</p>
+      <p class="flex items-center text-xs text-zinc-500 mb-2">{{ t('backtest.avgReturnByBand', { h: HORIZON_LABELS[horizon] }) }}<InfoTip v-bind="t('info.btBands')" /></p>
       <div class="h-56 mb-6"><canvas ref="barCanvas"></canvas></div>
 
       <!-- Score over time vs price -->
-      <p class="text-xs text-zinc-500 mb-2">{{ t('backtest.scoreOverTime') }}</p>
+      <p class="flex items-center text-xs text-zinc-500 mb-2">{{ t('backtest.scoreOverTime') }}<InfoTip v-bind="t('info.btScoreTime')" /></p>
       <div class="h-64"><canvas ref="lineCanvas"></canvas></div>
 
       <p class="text-[11px] text-zinc-600 mt-4 leading-relaxed border-t border-zinc-800/60 pt-3">

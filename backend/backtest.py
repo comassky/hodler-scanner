@@ -234,6 +234,11 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
 
     name = db.get_names().get(code) or fetch_single_ticker_info(code)[1]
 
+    # Per-date scores are causal (depend only on data ≤ that date) → deterministic
+    # and safe to persist. Reuse stored scores and only replay the new dates.
+    stored = {} if refresh else db.get_backtest_scores(code)
+    fresh_rows: list[tuple] = []
+
     rows: list[dict] = []
     price_arr = close.to_numpy(dtype=float)
     last_scorable = len(idx) - 1
@@ -252,18 +257,29 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
         if not returns:
             continue
 
-        item = _build_item(i, date, name, close, volume, divs, series)
-        _, _, score, *_ = generer_analyse_investisseur_lt(item, "en")
+        date_str = date.strftime("%Y-%m-%d")
+        price = round(float(price_arr[i]), 2)
+        hit = stored.get(date_str)
+        if hit is not None:
+            score = hit[1]
+        else:
+            item = _build_item(i, date, name, close, volume, divs, series)
+            _, _, score, *_ = generer_analyse_investisseur_lt(item, "en")
+            score = int(score)
+            fresh_rows.append((date_str, price, score))
 
         rows.append({
-            "date": date.strftime("%Y-%m-%d"),
-            "price": round(float(price_arr[i]), 2),
-            "score": int(score),
+            "date": date_str,
+            "price": price,
+            "score": score,
             "returns": returns,
         })
 
     if len(rows) < 12:
         raise HTTPException(status_code=422, detail="Trop peu de points pour un backtest fiable")
+
+    if fresh_rows:
+        db.save_backtest_scores(code, fresh_rows)
 
     agg = _aggregate(rows)
     report = {
