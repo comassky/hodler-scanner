@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { useTheme } from '../composables/useTheme.js'
 import { useI18n } from '../composables/useI18n.js'
 
@@ -7,12 +8,16 @@ defineProps({
   watchlistCount: { type: Number,  default: 0 },
   history:        { type: Array,   default: () => [] },
 })
-defineEmits(['update:view', 'search'])
+defineEmits(['update:view', 'search', 'open-search'])
 
 const { theme, THEMES, setTheme } = useTheme()
 const { t, locale, setLocale, LOCALES } = useI18n()
 
 const themeLabel = id => ({ dark: t('header.themeDark'), gray: t('header.themeGray'), light: t('header.themeLight') }[id] ?? id)
+
+// Platform-aware shortcut hint (⌘F on macOS, Ctrl F elsewhere).
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '')
+const shortcutLabel = computed(() => (isMac ? '⌘F' : 'Ctrl F'))
 </script>
 
 <template>
@@ -69,8 +74,17 @@ const themeLabel = id => ({ dark: t('header.themeDark'), gray: t('header.themeGr
         </button>
       </div>
 
+      <!-- Quick-search shortcut -->
+      <button @click="$emit('open-search')" :title="t('search.modalTitle')"
+        class="ml-auto shrink-0 flex items-center gap-2 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 rounded-xl pl-2.5 pr-2 h-9 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+        </svg>
+        <kbd class="hidden sm:block text-[10px] font-mono bg-zinc-800 text-zinc-400 rounded px-1.5 py-0.5 leading-none">{{ shortcutLabel }}</kbd>
+      </button>
+
       <!-- Theme switcher -->
-      <div class="flex gap-0.5 bg-zinc-900/60 rounded-xl p-1 shrink-0 ml-auto">
+      <div class="flex gap-0.5 bg-zinc-900/60 rounded-xl p-1 shrink-0">
         <button v-for="t2 in THEMES" :key="t2.id" @click="setTheme(t2.id)"
           :title="themeLabel(t2.id)"
           :class="['w-7 h-7 rounded-lg flex items-center justify-center transition-all',

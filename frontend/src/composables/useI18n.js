@@ -26,6 +26,7 @@ const messages = {
       placeholder: 'Ticker, name or ISIN… (LVMH, Apple, MC.PA, FR0000121014)',
       analyzing: 'Analyzing…', analyze: 'Analyze →', popular: 'Popular:',
       searching: 'Searching…', noResults: 'No matching ticker',
+      modalTitle: 'Quick search', navHint: 'to navigate', selectHint: 'to select', closeHint: 'to close',
     },
     app: {
       title: 'Technical analysis',
@@ -460,6 +461,7 @@ const messages = {
       placeholder: 'Ticker, nom ou ISIN… (LVMH, Apple, MC.PA, FR0000121014)',
       analyzing: 'Analyse…', analyze: 'Analyser →', popular: 'Populaires :',
       searching: 'Recherche…', noResults: 'Aucun ticker correspondant',
+      modalTitle: 'Recherche rapide', navHint: 'naviguer', selectHint: 'sélectionner', closeHint: 'fermer',
     },
     app: {
       title: 'Analyse technique',

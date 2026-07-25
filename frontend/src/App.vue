@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import AppHeader      from './components/AppHeader.vue'
 import TickerSearch   from './components/TickerSearch.vue'
+import SearchModal    from './components/SearchModal.vue'
 import TickerCharts   from './components/TickerCharts.vue'
 import DashboardView  from './components/DashboardView.vue'
 import NewsList       from './components/NewsList.vue'
@@ -92,6 +93,25 @@ function goToAnalyse(ticker) {
   view.value = 'analyse'
   nextTick(() => search(ticker))
 }
+
+// ── Global quick-search modal (Ctrl/Cmd + F) ──────────────────────
+const searchModalOpen = ref(false)
+
+function onGlobalKeydown(e) {
+  // Intercept the browser "find" shortcut to open our ticker/ISIN search.
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+    e.preventDefault()
+    searchModalOpen.value = true
+  }
+}
+
+function onModalSearch(ticker) {
+  view.value = 'analyse'
+  nextTick(() => search(ticker))
+}
+
+onMounted(() => window.addEventListener('keydown', onGlobalKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
 </script>
 
 <template>
@@ -102,8 +122,8 @@ function goToAnalyse(ticker) {
       :watchlist-count="watchlist.length"
       :history="history"
       @search="search"
+      @open-search="searchModalOpen = true"
     />
-
     <!-- ═════ ANALYSIS ═══════════════════════════════════════════ -->
     <main v-if="view === 'analyse'" class="flex-1 px-4 md:px-6 xl:px-8 py-8 pb-20">
 
@@ -227,6 +247,13 @@ function goToAnalyse(ticker) {
         <span class="font-mono">v{{ appVersion }}</span>
       </div>
     </footer>
+
+    <!-- Global quick-search modal (Ctrl/Cmd + F) -->
+    <SearchModal
+      :open="searchModalOpen"
+      @close="searchModalOpen = false"
+      @search="onModalSearch"
+    />
 
   </div>
 </template>
