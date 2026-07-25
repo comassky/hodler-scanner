@@ -47,10 +47,15 @@ def init_db() -> None:
                 date   TEXT NOT NULL,
                 price  REAL NOT NULL,
                 score  INTEGER NOT NULL,
+                sma200 REAL,
                 PRIMARY KEY (ticker, date)
             );
             """
         )
+        # Migration: add sma200 to pre-existing backtest_scores tables.
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(backtest_scores)").fetchall()}
+        if "sma200" not in cols:
+            conn.execute("ALTER TABLE backtest_scores ADD COLUMN sma200 REAL")
 
 
 # ── Ticker names cache ──────────────────────────────────────────────
@@ -132,30 +137,33 @@ def set_favorites(tickers: list) -> list:
 
 # ── Backtest scores (deterministic per-date cache) ──────────────────
 def get_backtest_scores(ticker: str) -> dict:
-    """Return stored scores for a ticker: ``{date: (price, score)}``."""
+    """Return stored scores for a ticker: ``{date: (price, score, sma200)}``."""
     code = ticker.strip().upper()
     if not code:
         return {}
     with _lock, _connect() as conn:
         rows = conn.execute(
-            "SELECT date, price, score FROM backtest_scores WHERE ticker = ?",
+            "SELECT date, price, score, sma200 FROM backtest_scores WHERE ticker = ?",
             (code,),
         ).fetchall()
-    return {d: (p, s) for d, p, s in rows}
+    return {d: (p, s, sma) for d, p, s, sma in rows}
 
 
 def save_backtest_scores(ticker: str, rows: list) -> None:
-    """Upsert a batch of ``(date, price, score)`` rows for a ticker."""
+    """Upsert a batch of ``(date, price, score, sma200)`` rows for a ticker."""
     code = ticker.strip().upper()
     if not code or not rows:
         return
-    payload = [(code, str(d), float(p), int(s)) for d, p, s in rows]
+    payload = [
+        (code, str(d), float(p), int(s), None if sma is None else float(sma))
+        for d, p, s, sma in rows
+    ]
     with _lock, _connect() as conn:
         conn.executemany(
-            "INSERT INTO backtest_scores (ticker, date, price, score) "
-            "VALUES (?, ?, ?, ?) "
+            "INSERT INTO backtest_scores (ticker, date, price, score, sma200) "
+            "VALUES (?, ?, ?, ?, ?) "
             "ON CONFLICT(ticker, date) DO UPDATE SET "
-            "price = excluded.price, score = excluded.score",
+            "price = excluded.price, score = excluded.score, sma200 = excluded.sma200",
             payload,
         )
 

@@ -118,6 +118,7 @@ const messages = {
       period: 'Period',
       score: 'Score',
       price: 'Price',
+      sma200: 'SMA 200D',
       avgReturn: 'Avg. return',
       median: 'Median',
       winRate: 'Win rate',
@@ -127,13 +128,14 @@ const messages = {
       bandAvoid: 'Avoid (<40)',
       avgReturnByBand: 'Average {h} forward return by score band (vs buy-anytime baseline)',
       scoreOverTime: 'Historical score vs price',
-      disclaimer: 'Past performance does not guarantee future results. Forward returns are measured on Friday samples over ~5 years of data; small buckets are statistically noisy.',
+      decisionLegend: 'Score line color = decision:',
+      disclaimer: 'Past performance does not guarantee future results. Forward returns are measured on Friday samples over up to ~10 years of data; longer horizons and small buckets have fewer samples and are statistically noisier.',
       loadError: 'Unable to run the backtest',
     },
     info: {
       backtest: {
         title: 'Score backtest',
-        text: 'We replay the exact scoring engine across ~5 years of history and measure the realized forward return (3M / 6M / 12M) after each score, grouped by band.',
+        text: 'We replay the exact scoring engine across up to ~10 years of history and measure the realized forward return (3M / 6M / 12M / 3Y / 5Y) after each score, grouped by band.',
         tip: 'If the engine is meaningful, higher score bands should show higher average forward returns than the baseline.',
       },
       btCorrelation: {
@@ -154,13 +156,13 @@ const messages = {
       },
       btSamples: {
         title: 'Samples',
-        text: 'Number of historical dates tested — one Friday per week over ~5 years. Each sample pairs a score with its measured forward return.',
-        tip: 'More samples = more reliable statistics; small bands stay noisy.',
+        text: 'Number of historical dates tested — one Friday per week over up to ~10 years. Each sample pairs a score with its measured forward return.',
+        tip: 'More samples = more reliable statistics; longer horizons and small bands stay noisy.',
       },
       btPeriod: {
         title: 'Period',
         text: 'Date range covered by the backtest, from the first to the last sampled Friday.',
-        tip: 'Bounded by the ~5 years of history available for the stock.',
+        tip: 'Bounded by the history available for the stock (up to ~10 years).',
       },
       btBands: {
         title: 'Return by score band',
@@ -550,6 +552,7 @@ const messages = {
       period: 'Période',
       score: 'Score',
       price: 'Cours',
+      sma200: 'SMA 200J',
       avgReturn: 'Rdt. moyen',
       median: 'Médiane',
       winRate: 'Taux de réussite',
@@ -559,13 +562,14 @@ const messages = {
       bandAvoid: 'Éviter (<40)',
       avgReturnByBand: 'Rendement moyen à {h} par palier de score (vs référence achat-au-hasard)',
       scoreOverTime: 'Score historique vs cours',
-      disclaimer: 'Les performances passées ne préjugent pas des résultats futurs. Les rendements forward sont mesurés sur des échantillons du vendredi sur ~5 ans ; les petits paliers sont statistiquement bruités.',
+      decisionLegend: 'Couleur de la ligne = décision :',
+      disclaimer: 'Les performances passées ne préjugent pas des résultats futurs. Les rendements forward sont mesurés sur des échantillons du vendredi sur jusqu’à ~10 ans ; les horizons longs et les petits paliers ont moins d’échantillons et sont plus bruités.',
       loadError: 'Impossible d’exécuter le backtest',
     },
     info: {
       backtest: {
         title: 'Backtest du score',
-        text: 'On rejoue exactement le moteur de scoring sur ~5 ans d’historique et on mesure le rendement forward réalisé (3M / 6M / 12M) après chaque score, groupé par palier.',
+        text: 'On rejoue exactement le moteur de scoring sur jusqu’à ~10 ans d’historique et on mesure le rendement forward réalisé (3M / 6M / 12M / 3A / 5A) après chaque score, groupé par palier.',
         tip: 'Si le moteur est pertinent, les paliers de score élevés doivent afficher un rendement forward moyen supérieur à la référence.',
       },
       btCorrelation: {
@@ -586,13 +590,13 @@ const messages = {
       },
       btSamples: {
         title: 'Échantillons',
-        text: 'Nombre de dates historiques testées — un vendredi par semaine sur ~5 ans. Chaque échantillon associe un score à son rendement forward mesuré.',
-        tip: 'Plus d’échantillons = statistiques plus fiables ; les petits paliers restent bruités.',
+        text: 'Nombre de dates historiques testées — un vendredi par semaine sur jusqu’à ~10 ans. Chaque échantillon associe un score à son rendement forward mesuré.',
+        tip: 'Plus d’échantillons = statistiques plus fiables ; les horizons longs et les petits paliers restent bruités.',
       },
       btPeriod: {
         title: 'Période',
         text: 'Plage de dates couverte par le backtest, du premier au dernier vendredi échantillonné.',
-        tip: 'Limitée par les ~5 ans d’historique disponibles pour le titre.',
+        tip: 'Limitée par l’historique disponible pour le titre (jusqu’à ~10 ans).',
       },
       btBands: {
         title: 'Rendement par palier',

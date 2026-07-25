@@ -14,9 +14,14 @@ const props = defineProps({
   error:   { type: String,  default: null },
 })
 
-// ── Horizon selector (trading days → ≈ months label) ──────────────
-const HORIZON_LABELS = { 63: '3M', 126: '6M', 252: '12M' }
+// ── Horizon selector (trading days → ≈ months/years label) ────────
+const yearUnit = computed(() => (locale.value === 'fr' ? 'A' : 'Y'))
+const HORIZON_LABELS = computed(() => ({
+  63: '3M', 126: '6M', 252: '12M',
+  756: `3${yearUnit.value}`, 1260: `5${yearUnit.value}`,
+}))
 const horizon = ref('126')
+const horizons = computed(() => props.data?.horizons_days ?? [63, 126, 252])
 watch(() => props.data, v => {
   if (v?.primary_horizon) horizon.value = String(v.primary_horizon)
 })
@@ -28,6 +33,23 @@ const BANDS = {
   watch:      { color: '#fbbf24', label: () => t('backtest.bandWatch') },
   avoid:      { color: '#f87171', label: () => t('backtest.bandAvoid') },
 }
+
+// Score → decision band (thresholds mirror the backend _BANDS: 80 / 60 / 40).
+function bandForScore(s) {
+  if (s == null) return null
+  if (s >= 80) return 'strong'
+  if (s >= 60) return 'accumulate'
+  if (s >= 40) return 'watch'
+  return 'avoid'
+}
+const scoreColor = (s) => BANDS[bandForScore(s)]?.color ?? '#818cf8'
+
+// Legend chips explaining the score line color code.
+const bandLegend = computed(() =>
+  ['strong', 'accumulate', 'watch', 'avoid'].map(k => ({
+    key: k, color: BANDS[k].color, label: BANDS[k].label(),
+  }))
+)
 
 function pct(v) {
   if (v == null) return '—'
@@ -158,6 +180,7 @@ function renderCharts() {
   const dates = d.series.map(p => p.date)
   const scores = d.series.map(p => p.score)
   const prices = d.series.map(p => p.price)
+  const sma200 = d.series.map(p => p.sma200 ?? null)
 
   lineChart = new Chart(lineCanvas.value, {
     type: 'line',
@@ -167,11 +190,20 @@ function renderCharts() {
         {
           label: t('backtest.score'), data: scores, yAxisID: 'yScore',
           borderColor: '#818cf8', backgroundColor: 'rgba(129,140,248,0.08)',
-          borderWidth: 1.5, tension: 0.25, fill: true, pointRadius: 0, pointHitRadius: 6, order: 1,
+          borderWidth: 1.8, tension: 0.25, fill: true, pointRadius: 0, pointHitRadius: 6, order: 1,
+          pointBackgroundColor: scores.map(scoreColor),
+          pointBorderColor: scores.map(scoreColor),
+          pointHoverRadius: 4,
+          segment: { borderColor: (ctx) => scoreColor(ctx.p1.parsed.y) },
         },
         {
           label: t('backtest.price'), data: prices, yAxisID: 'yPrice',
           borderColor: '#52525b', borderWidth: 1.2, tension: 0.1, fill: false, pointRadius: 0, pointHitRadius: 6, order: 2,
+        },
+        {
+          label: t('backtest.sma200'), data: sma200, yAxisID: 'yPrice',
+          borderColor: '#f59e0b', borderWidth: 1.2, borderDash: [4, 3], tension: 0.1,
+          fill: false, pointRadius: 0, pointHitRadius: 6, spanGaps: true, order: 3,
         },
       ],
     },
@@ -187,9 +219,14 @@ function renderCharts() {
           backgroundColor: c.panel, borderColor: c.border, borderWidth: 1,
           titleColor: c.tick, bodyColor: c.body, padding: 10,
           callbacks: {
-            label: (i) => i.datasetIndex === 0
-              ? ` ${t('backtest.score')}: ${i.parsed.y}`
-              : ` ${t('backtest.price')}: ${i.parsed.y?.toFixed(2) ?? '—'}`,
+            label: (i) => {
+              if (i.datasetIndex === 0) {
+                const key = bandForScore(i.parsed.y)
+                return ` ${t('backtest.score')}: ${i.parsed.y} — ${BANDS[key]?.label() ?? ''}`
+              }
+              const lbl = i.datasetIndex === 1 ? t('backtest.price') : t('backtest.sma200')
+              return ` ${lbl}: ${i.parsed.y?.toFixed(2) ?? '—'}`
+            },
           },
         },
       },
@@ -208,8 +245,6 @@ watch(horizon, () => { if (props.data) nextTick(renderCharts) })
 watch([theme, locale], () => { if (props.data && !props.loading) nextTick(renderCharts) })
 onMounted(() => { if (props.data && !props.loading) nextTick(renderCharts) })
 onUnmounted(destroy)
-
-const HORIZONS = [63, 126, 252]
 </script>
 
 <template>
@@ -219,7 +254,7 @@ const HORIZONS = [63, 126, 252]
         {{ t('backtest.title') }}<InfoTip v-bind="t('info.backtest')" />
       </h2>
       <div v-if="data" class="flex gap-1">
-        <button v-for="hz in HORIZONS" :key="hz"
+        <button v-for="hz in horizons" :key="hz"
           @click="horizon = String(hz)"
           :class="['px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
             horizon === String(hz) ? 'bg-indigo-600 text-white' : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300']">
@@ -269,6 +304,14 @@ const HORIZONS = [63, 126, 252]
       <!-- Score over time vs price -->
       <p class="flex items-center text-xs text-zinc-500 mb-2">{{ t('backtest.scoreOverTime') }}<InfoTip v-bind="t('info.btScoreTime')" /></p>
       <div class="h-64"><canvas ref="lineCanvas"></canvas></div>
+
+      <!-- Decision color code for the score line -->
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5">
+        <span class="text-[10px] uppercase tracking-wider text-zinc-500">{{ t('backtest.decisionLegend') }}</span>
+        <span v-for="b in bandLegend" :key="b.key" class="flex items-center gap-1.5 text-[10px] text-zinc-400">
+          <span class="inline-block w-3.5 h-[3px] rounded-full" :style="{ background: b.color }"></span>{{ b.label }}
+        </span>
+      </div>
 
       <p class="text-[11px] text-zinc-600 mt-4 leading-relaxed border-t border-zinc-800/60 pt-3">
         {{ t('backtest.disclaimer') }}

@@ -37,11 +37,11 @@ from script import (
     generer_analyse_investisseur_lt,
 )
 
-# Forward-return horizons in trading days (≈ 3, 6 and 12 months).
-HORIZONS = (63, 126, 252)
+# Forward-return horizons in trading days (≈ 3M, 6M, 12M, 3Y and 5Y).
+HORIZONS = (63, 126, 252, 756, 1260)
 PRIMARY_HORIZON = 126
 _WARMUP = 252            # sessions of history required before the first sample
-_HISTORY_PERIOD = "5y"   # downloaded window
+_HISTORY_PERIOD = "10y"  # downloaded window (long enough for multi-year horizons)
 
 # Score bands (aligned with the status thresholds of the analysis engine).
 _BANDS = (
@@ -222,8 +222,8 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
     volume = flat_col(data, "Volume")
     divs = flat_col(data, "Dividends").fillna(0.0) if "Dividends" in data else pd.Series(dtype=float)
     n = int(close.count())
-    max_h = max(HORIZONS)
-    if n < _WARMUP + max_h + 20:
+    min_h = min(HORIZONS)
+    if n < _WARMUP + min_h + 20:
         raise HTTPException(
             status_code=422,
             detail=f"Historique insuffisant pour un backtest ({n} sessions)",
@@ -241,6 +241,7 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
 
     rows: list[dict] = []
     price_arr = close.to_numpy(dtype=float)
+    sma200_arr = series["sma200"].ffill().to_numpy(dtype=float)
     last_scorable = len(idx) - 1
     for i in range(_WARMUP, len(idx)):
         date = idx[i]
@@ -259,19 +260,23 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
 
         date_str = date.strftime("%Y-%m-%d")
         price = round(float(price_arr[i]), 2)
+        sma200 = round(float(sma200_arr[i]), 2) if not pd.isna(sma200_arr[i]) else None
         hit = stored.get(date_str)
         if hit is not None:
             score = hit[1]
+            if hit[2] is None:             # backfill sma200 on legacy rows
+                fresh_rows.append((date_str, price, score, sma200))
         else:
             item = _build_item(i, date, name, close, volume, divs, series)
             _, _, score, *_ = generer_analyse_investisseur_lt(item, "en")
             score = int(score)
-            fresh_rows.append((date_str, price, score))
+            fresh_rows.append((date_str, price, score, sma200))
 
         rows.append({
             "date": date_str,
             "price": price,
             "score": score,
+            "sma200": sma200,
             "returns": returns,
         })
 
@@ -281,6 +286,12 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
     if fresh_rows:
         db.save_backtest_scores(code, fresh_rows)
 
+    # Keep only horizons with enough realized samples (long horizons need more history).
+    avail = [h for h in HORIZONS if sum(1 for r in rows if h in r["returns"]) >= 12]
+    if not avail:
+        avail = [min(HORIZONS)]
+    primary = PRIMARY_HORIZON if PRIMARY_HORIZON in avail else avail[-1]
+
     agg = _aggregate(rows)
     report = {
         "ticker": code,
@@ -288,9 +299,9 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
         "period_start": rows[0]["date"],
         "period_end": rows[-1]["date"],
         "samples": len(rows),
-        "horizons_days": list(HORIZONS),
-        "primary_horizon": PRIMARY_HORIZON,
-        "series": [{"date": r["date"], "price": r["price"], "score": r["score"]} for r in rows],
+        "horizons_days": avail,
+        "primary_horizon": primary,
+        "series": [{"date": r["date"], "price": r["price"], "score": r["score"], "sma200": r["sma200"]} for r in rows],
         "bands": agg["bands"],
         "baseline": agg["baseline"],
         "correlation": agg["correlation"],
