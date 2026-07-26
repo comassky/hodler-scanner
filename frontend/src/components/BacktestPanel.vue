@@ -71,6 +71,46 @@ const summary = computed(() => {
   }
 })
 
+// ── Verdict for the user's goal: "good moments to buy for a hold?" ──
+// What matters is NOT whether returns are positive (a rising asset is positive
+// almost everywhere) but whether buying on the actionable "buy" bands
+// (Strong + Accumulate) beat buying at *any* random time (the baseline).
+const verdict = computed(() => {
+  const d = props.data
+  if (!d) return null
+  const h = horizon.value
+  const base = d.baseline?.by_horizon?.[h]?.avg_return
+  if (base == null) return { tone: 'nodata' }
+  let wSum = 0, cSum = 0
+  for (const b of d.bands) {
+    if (b.key !== 'strong' && b.key !== 'accumulate') continue
+    const st = b.by_horizon?.[h]
+    if (!st || st.avg_return == null || !st.count) continue
+    wSum += st.avg_return * st.count
+    cSum += st.count
+  }
+  if (!cSum) return { tone: 'nodata' }
+  const buyReturn = wSum / cSum
+  const delta = buyReturn - base
+  const tone = delta >= 2 ? 'good' : delta <= -2 ? 'bad' : 'neutral'
+  return { tone, delta, buyReturn, base }
+})
+
+const VERDICT_STYLES = {
+  good:    'bg-emerald-500/10 border-emerald-500/30 text-emerald-300',
+  neutral: 'bg-amber-500/10 border-amber-500/30 text-amber-300',
+  bad:     'bg-red-500/10 border-red-500/30 text-red-300',
+  nodata:  'bg-zinc-800/40 border-zinc-700/50 text-zinc-400',
+}
+
+const verdictMessage = computed(() => {
+  const v = verdict.value
+  if (!v) return null
+  if (v.tone === 'nodata') return t('backtest.verdictNoData')
+  const params = { delta: pct(v.delta), h: HORIZON_LABELS.value[horizon.value] }
+  return t(`backtest.verdict_${v.tone}`, params)
+})
+
 // ── Charts ────────────────────────────────────────────────────────
 const barCanvas = ref(null)
 const lineCanvas = ref(null)
@@ -155,7 +195,9 @@ function renderCharts() {
             afterLabel: (i) => {
               const b = bands[i.dataIndex]
               const st = b.by_horizon?.[h] ?? {}
+              const delta = (st.avg_return != null && baseline != null) ? st.avg_return - baseline : null
               return [
+                `${t('backtest.vsBaseline')}: ${pct(delta)}`,
                 `${t('backtest.samples')}: ${st.count ?? 0}`,
                 `${t('backtest.winRate')}: ${st.win_rate ?? '—'}%`,
                 `${t('backtest.median')}: ${pct(st.median_return)}`,
@@ -275,6 +317,19 @@ onUnmounted(destroy)
     </div>
 
     <template v-else-if="data">
+      <!-- Verdict: does the score help time entries on THIS ticker? -->
+      <div v-if="verdictMessage" :class="['flex items-start gap-2.5 border rounded-xl px-3.5 py-3 mb-5', VERDICT_STYLES[verdict.tone]]">
+        <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path v-if="verdict.tone === 'good'" stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+          <path v-else-if="verdict.tone === 'bad'" stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+          <path v-else stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/>
+        </svg>
+        <div>
+          <p class="text-[10px] uppercase tracking-wider opacity-70 mb-0.5">{{ t('backtest.verdictLabel') }}</p>
+          <p class="text-xs leading-relaxed">{{ verdictMessage }}</p>
+        </div>
+      </div>
+
       <!-- Summary stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div class="bg-zinc-950/40 border border-zinc-800 rounded-xl px-3 py-2.5">
@@ -299,7 +354,8 @@ onUnmounted(destroy)
 
       <!-- Average forward return per band -->
       <p class="flex items-center text-xs text-zinc-500 mb-2">{{ t('backtest.avgReturnByBand', { h: HORIZON_LABELS[horizon] }) }}<InfoTip v-bind="t('info.btBands')" /></p>
-      <div class="h-56 mb-6"><canvas ref="barCanvas"></canvas></div>
+      <div class="h-56 mb-2"><canvas ref="barCanvas"></canvas></div>
+      <p class="text-[11px] text-zinc-500 mb-6 leading-relaxed">{{ t('backtest.bandsGuide') }}</p>
 
       <!-- Score over time vs price -->
       <p class="flex items-center text-xs text-zinc-500 mb-2">{{ t('backtest.scoreOverTime') }}<InfoTip v-bind="t('info.btScoreTime')" /></p>
