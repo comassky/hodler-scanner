@@ -205,6 +205,76 @@ def _aggregate(rows: list[dict]) -> dict:
     return {"bands": bands, "baseline": baseline, "correlation": corr}
 
 
+def _band_for_score(score: float) -> str:
+    for key, lo, hi in _BANDS:
+        if lo <= score < hi:
+            return key
+    return "avoid"
+
+
+def _timing(rows: list[dict], agg: dict, current_score: int, primary: int) -> dict:
+    """Answer 'is *now* a very good moment to buy this ticker for a mid/long-term hold?'
+
+    Combines three signals, all relative to the ticker's own 10-year history:
+      • percentile   — how rare/high the current score is vs its own past,
+      • edge         — how the current score band beat the buy-anytime baseline,
+      • reliability  — whether the 'buy' bands historically beat the baseline at all
+                       (on some names the score has no predictive edge → don't trust it).
+    """
+    h = str(primary)
+    scores = [r["score"] for r in rows]
+    below = sum(1 for s in scores if s <= current_score)
+    percentile = round(below / len(scores) * 100) if scores else 0
+
+    band_key = _band_for_score(current_score)
+    band = next((b for b in agg["bands"] if b["key"] == band_key), None)
+    band_ret = band["by_horizon"].get(h, {}).get("avg_return") if band else None
+    base_ret = agg["baseline"]["by_horizon"].get(h, {}).get("avg_return")
+    edge = round(band_ret - base_ret, 2) if (band_ret is not None and base_ret is not None) else None
+
+    # Reliability: do the actionable "buy" bands (strong + accumulate) beat the
+    # baseline on this ticker? (sample-weighted average of their forward returns).
+    w_sum = c_sum = 0.0
+    for b in agg["bands"]:
+        if b["key"] not in ("strong", "accumulate"):
+            continue
+        st = b["by_horizon"].get(h, {})
+        if st.get("avg_return") is None or not st.get("count"):
+            continue
+        w_sum += st["avg_return"] * st["count"]
+        c_sum += st["count"]
+    engine_edge = round(w_sum / c_sum - base_ret, 2) if (c_sum and base_ret is not None) else None
+    corr = agg["correlation"].get(h)
+    if engine_edge is not None:
+        reliable = engine_edge >= 0
+    else:
+        reliable = corr is not None and corr >= 0
+
+    if not reliable or edge is None:
+        level = "unreliable"
+    elif percentile >= 90 and edge > 0:
+        level = "excellent"
+    elif percentile >= 70 and edge > 0:
+        level = "good"
+    elif percentile >= 50:
+        level = "fair"
+    else:
+        level = "poor"
+
+    return {
+        "current_score": int(current_score),
+        "percentile": percentile,
+        "band": band_key,
+        "edge": edge,
+        "engine_edge": engine_edge,
+        "correlation": corr,
+        "horizon": primary,
+        "reliable": reliable,
+        "level": level,
+    }
+
+
+
 def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
     """Run the light backtest for a ticker and return a JSON-serializable report."""
     code = ticker_code.upper()
@@ -293,6 +363,15 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
     primary = PRIMARY_HORIZON if PRIMARY_HORIZON in avail else avail[-1]
 
     agg = _aggregate(rows)
+
+    # Current (live) score at the latest bar → "is now a good moment?" verdict.
+    last_i = len(idx) - 1
+    while last_i > _WARMUP and pd.isna(price_arr[last_i]):
+        last_i -= 1
+    cur_item = _build_item(last_i, idx[last_i], name, close, volume, divs, series)
+    _, _, cur_score, *_ = generer_analyse_investisseur_lt(cur_item, "en")
+    timing = _timing(rows, agg, int(cur_score), primary)
+
     report = {
         "ticker": code,
         "name": name,
@@ -305,6 +384,7 @@ def run_backtest(ticker_code: str, refresh: bool = False) -> dict:
         "bands": agg["bands"],
         "baseline": agg["baseline"],
         "correlation": agg["correlation"],
+        "timing": timing,
         "cached": False,
     }
     backtest_cache.set(ckey, report)

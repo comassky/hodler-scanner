@@ -8,6 +8,7 @@ import DashboardView  from './components/DashboardView.vue'
 import NewsList       from './components/NewsList.vue'
 import BacktestPanel  from './components/BacktestPanel.vue'
 import AnalysisOverview  from './components/analysis/AnalysisOverview.vue'
+import EntryTiming       from './components/analysis/EntryTiming.vue'
 import IndicatorsCard    from './components/analysis/IndicatorsCard.vue'
 import KeyLevelsCard     from './components/analysis/KeyLevelsCard.vue'
 import FundamentalsCard  from './components/analysis/FundamentalsCard.vue'
@@ -48,6 +49,7 @@ const isWatchlisted = computed(() => (d.value ? has(d.value.ticker) : false))
 const navSections = computed(() => {
   const s = [
     { id: 'section-apercu',      label: t('sections.overview') },
+    { id: 'section-timing',      label: t('sections.timing') },
     { id: 'section-graphiques',  label: t('sections.charts') },
     { id: 'section-indicateurs', label: t('sections.indicators') },
   ]
@@ -182,6 +184,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
           @toggle="toggle"
           @refresh="search($event, true)"
         />
+
+        <!-- 1b. Entry timing — is now a good moment to buy & hold? -->
+        <EntryTiming :data="backtest" :loading="backtestLoading" />
 
         <!-- 2. Two-column: Charts (left) + Sidebar (right) -->
         <div id="section-graphiques" class="scroll-mt-28 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3">
