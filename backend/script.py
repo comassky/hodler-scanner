@@ -131,7 +131,7 @@ def detecter_divergence_haussiere(prix_series, rsi_series, lookback=80, min_sepa
         px  = prix_series[common_idx].iloc[-lookback:].values
         rsi = rsi_series[common_idx].iloc[-lookback:].values
         n, half = len(px), 5
-        # Local minima: px[i] is the minimum of its ±3-bar window
+        # Local minima: px[i] is the minimum of its ±5-bar window
         lows = []
         for i in range(half, n - half):
             if px[i] == min(px[i - half: i + half + 1]):
@@ -361,7 +361,10 @@ def generer_analyse_investisseur_lt(item, lang="en"):
         else:
             _add("SMA", _t("sma.sma50w_above", ecart_w50=ecart_w50), 10)
     else:
-        _add("SMA", _t("sma.deep_discount", ecart_sma200=ecart_sma200, ecart_w50=ecart_w50), 10)
+        if ecart_sma200 < 0:
+            _add("SMA", _t("sma.deep_discount", ecart_sma200=ecart_sma200, ecart_w50=ecart_w50), 10)
+        else:
+            _add("SMA", _t("sma.extended_above", ecart_sma200=ecart_sma200, ecart_w50=ecart_w50), 0)
 
     # 1b. Trend structure (SMA50d vs SMA200d + SMA200 slope over 20 sessions)
     if sma50_price > sma200_price:

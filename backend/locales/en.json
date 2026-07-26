@@ -6,6 +6,7 @@
   "sma.support_lt_below": "📈 Long-Term Support : Price retesting the SMA 50w from below ({ecart_w50:+.2f}%) — long-term area of interest.",
   "sma.sma50w_above": "📊 SMA 50w : Price slightly above ({ecart_w50:+.2f}%) — support preserved in an uptrend.",
   "sma.deep_discount": "📉 Deep discount : Price below the SMA 200d ({ecart_sma200:+.2f}%) and SMA 50w ({ecart_w50:+.2f}%) — wait for a stabilization signal.",
+  "sma.extended_above": "📈 Extended above the averages : Price well above the SMA 200d ({ecart_sma200:+.2f}%) and SMA 50w ({ecart_w50:+.2f}%) — no nearby support, less favorable entry.",
 
   "trend.bullish_confirmed": "📊 Confirmed Bullish Structure : SMA50d ({sma50_price:.2f}) > SMA200d — rising SMA200 slope ({sma200_slope:+.1f}%/20d). Retest in a supportive context.",
   "trend.favorable": "📊 Favorable Structure : SMA50d above the SMA200d — underlying trend intact.",

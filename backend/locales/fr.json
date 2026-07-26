@@ -6,6 +6,7 @@
   "sma.support_lt_below": "📈 Support Long Terme : Cours en retest de la SMA 50 sem par en-dessous ({ecart_w50:+.2f}%) — zone d'intérêt long terme.",
   "sma.sma50w_above": "📊 SMA 50w : Cours légèrement au-dessus ({ecart_w50:+.2f}%) — support préservé en tendance haussière.",
   "sma.deep_discount": "📉 Décote profonde : Prix sous la SMA 200j ({ecart_sma200:+.2f}%) et SMA 50w ({ecart_w50:+.2f}%) — attendre un signal de stabilisation.",
+  "sma.extended_above": "📈 Extension au-dessus des moyennes : Prix nettement au-dessus de la SMA 200j ({ecart_sma200:+.2f}%) et SMA 50w ({ecart_w50:+.2f}%) — pas de support proche, entrée moins favorable.",
 
   "trend.bullish_confirmed": "📊 Structure Haussière Confirmée : SMA50j ({sma50_price:.2f}) > SMA200j — pente SMA200 ascendante ({sma200_slope:+.1f}%/20j). Retest dans un contexte porteur.",
   "trend.favorable": "📊 Structure Favorable : SMA50j au-dessus de la SMA200j — tendance de fond intacte.",
