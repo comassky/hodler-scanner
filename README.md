@@ -92,7 +92,7 @@ The result is condensed into a **single opportunity score**, transparently broke
 - 🗂️ **Batch analysis** (up to 50 tickers in parallel).
 - 📊 **Interactive charts**: price + SMA 200/50, volume, **Fibonacci levels**, **Bollinger bands** (togglable), RSI 14 and MACD histogram sub-charts, plus an annotated **price/RSI divergence** detector.
 - ↕️ **Dashboard sorting** — sort the watchlist by score (highest first by default), change, or name.
-- ⌨️ **Quick-search modal** — `Ctrl/⌘ F` opens a command-palette search (name / symbol / **ISIN**) from anywhere in the app.
+- ⌨️ **Quick-search modal** — `Ctrl/⌘ K` (or `/`) opens a command-palette search (name / symbol / **ISIN**) from anywhere in the app.
 - � **Recent news feed** per ticker (Yahoo Finance headlines with publisher, date and thumbnail).
 - 🔄 **Forced refresh** (cache bypass) per ticker.
 - 🧪 **Score backtest with a plain-language verdict** — replays the exact scoring engine over **up to ~10 years** of history and shows realized forward returns (**3M / 6M / 12M / 3Y / 5Y**) grouped by score band, each measured **against a buy-anytime baseline**. A **verdict banner** states, per ticker and horizon, whether buying on high scores actually **beat buying at a random time** (the real signal — *being positive isn't enough, it must beat the baseline*), alongside a **color-coded score-vs-price timeline** and a score/return correlation.
@@ -421,7 +421,7 @@ Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 **Components** (`src/components/`)
 - `DashboardView` / `DashboardCard` — watchlist dashboard view (with score/change/name sorting)
 - `TickerSearch` — search bar + history
-- `SearchModal` — `Ctrl/⌘ F` command-palette quick search (name / symbol / ISIN)
+- `SearchModal` — `Ctrl/⌘ K` (or `/`) command-palette quick search (name / symbol / ISIN)
 - `TickerCharts` — Chart.js charts (price/SMA/volume + Fibonacci + Bollinger, RSI, MACD, divergences), zoom/pan, Fibonacci & Bollinger toggles
 - `BacktestPanel` — historical score backtest: verdict banner, forward-return-by-band bar chart vs the buy-anytime baseline, and a color-coded score/price timeline
 - `NewsList` — recent news feed (publisher, date, thumbnail) for the analyzed ticker

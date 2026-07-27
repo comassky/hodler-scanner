@@ -12,8 +12,10 @@ const props = defineProps({
 const emit = defineEmits(['close', 'search'])
 
 const inputEl = ref(null)
+const panelEl = ref(null)
 const term    = ref('')
 const acIdx   = ref(-1)
+let _prevFocus = null
 
 // Debounced query term (≥ 2 chars) drives the search request.
 const query      = computed(() => term.value.trim())
@@ -61,12 +63,16 @@ function parts(text) {
 
 watch(debouncedQ, () => { acIdx.value = -1 })
 
-// Reset + focus each time the modal opens.
+// Reset + focus each time the modal opens; restore focus to the trigger on close.
 watch(() => props.open, (v) => {
   if (v) {
+    _prevFocus = document.activeElement
     term.value = ''
     acIdx.value = -1
     nextTick(() => inputEl.value?.focus())
+  } else if (_prevFocus && typeof _prevFocus.focus === 'function') {
+    _prevFocus.focus()
+    _prevFocus = null
   }
 })
 
@@ -81,8 +87,26 @@ function submitRaw() {
   if (code) pick(code)
 }
 
+// Keep Tab focus inside the dialog (basic focus trap).
+function trapTab(e) {
+  const root = panelEl.value
+  if (!root) return
+  const nodes = root.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )
+  if (!nodes.length) return
+  const first = nodes[0]
+  const last  = nodes[nodes.length - 1]
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault(); last.focus()
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault(); first.focus()
+  }
+}
+
 function onKeydown(e) {
   if (e.key === 'Escape') { emit('close'); return }
+  if (e.key === 'Tab') { trapTab(e); return }
   if (e.key === 'ArrowDown') {
     e.preventDefault()
     if (items.value.length) acIdx.value = Math.min(acIdx.value + 1, items.value.length - 1)
@@ -102,7 +126,8 @@ function onKeydown(e) {
     <div v-if="open"
       class="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-[12vh] bg-black/60 backdrop-blur-sm"
       @mousedown.self="emit('close')">
-      <div class="w-full max-w-xl bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden"
+      <div ref="panelEl" role="dialog" aria-modal="true" :aria-label="t('search.modalTitle')"
+        class="w-full max-w-xl bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden"
         @keydown="onKeydown">
         <!-- Input -->
         <div class="relative border-b border-zinc-800">

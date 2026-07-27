@@ -4,7 +4,8 @@ import { useFormatters } from '../../composables/useFormatters.js'
 import { useI18n } from '../../composables/useI18n.js'
 
 defineProps({
-  fundamentals: { type: Object, required: true },
+  fundamentals: { type: Object, default: null },
+  loading:      { type: Boolean, default: false },
 })
 
 const { t } = useI18n()
@@ -14,7 +15,14 @@ const { fmt, fmtMarketCap } = useFormatters()
 <template>
   <div id="section-fondamentaux" class="scroll-mt-28 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
     <h2 class="flex items-center text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">{{ t('app.fundamentals') }}<InfoTip v-bind="t('info.fundamentals')" /></h2>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
+    <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div v-for="n in 7" :key="n" class="space-y-1.5">
+        <div class="h-3 w-16 bg-zinc-800/60 rounded animate-pulse"></div>
+        <div class="h-4 w-20 bg-zinc-800/60 rounded animate-pulse"></div>
+      </div>
+    </div>
+    <p v-else-if="!fundamentals" class="text-sm text-zinc-500">{{ t('app.fundamentalsUnavailable') }}</p>
+    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
       <div v-if="fundamentals.market_cap">
         <p class="text-xs text-zinc-500 mb-0.5">{{ t('fund.marketCap') }}</p>
         <p class="text-sm font-semibold font-mono text-zinc-100">{{ fmtMarketCap(fundamentals.market_cap) }}</p>

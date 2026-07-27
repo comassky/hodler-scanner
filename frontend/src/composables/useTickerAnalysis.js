@@ -76,8 +76,12 @@ export function useTickerAnalysis() {
   const error        = computed(() => tickerQuery.error.value?.message ?? null)
   const chartData    = computed(() => chartQuery.data.value ?? null)
   const chartLoading = computed(() => queryEnabled.value && chartQuery.isLoading.value)
-  const fundamentals = computed(() => fundamentalsQuery.data.value ?? null)
+  const fundamentals        = computed(() => fundamentalsQuery.data.value ?? null)
+  const fundamentalsLoading = computed(() => queryEnabled.value && fundamentalsQuery.isLoading.value)
+  const fundamentalsReady   = computed(() => queryEnabled.value && fundamentalsQuery.isFetched.value)
   const news         = computed(() => newsQuery.data.value ?? null)
+  const newsLoading  = computed(() => queryEnabled.value && newsQuery.isLoading.value)
+  const newsReady    = computed(() => queryEnabled.value && newsQuery.isFetched.value)
   const backtest        = computed(() => backtestQuery.data.value ?? null)
   const backtestLoading = computed(() => queryEnabled.value && backtestQuery.isLoading.value)
   const backtestError   = computed(() => backtestQuery.error.value?.message ?? null)
@@ -124,7 +128,8 @@ export function useTickerAnalysis() {
     input, period, activeTicker, history,
     result, loading, error,
     chartData, chartLoading,
-    fundamentals, news,
+    fundamentals, fundamentalsLoading, fundamentalsReady,
+    news, newsLoading, newsReady,
     backtest, backtestLoading, backtestError,
     scoreContribs, scoreContribMax,
     search,

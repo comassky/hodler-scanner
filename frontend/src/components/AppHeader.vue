@@ -15,9 +15,9 @@ const { t, locale, setLocale, LOCALES } = useI18n()
 
 const themeLabel = id => ({ dark: t('header.themeDark'), gray: t('header.themeGray'), light: t('header.themeLight') }[id] ?? id)
 
-// Platform-aware shortcut hint (⌘F on macOS, Ctrl F elsewhere).
+// Platform-aware shortcut hint (⌘K on macOS, Ctrl K elsewhere).
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '')
-const shortcutLabel = computed(() => (isMac ? '⌘F' : 'Ctrl F'))
+const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl K'))
 </script>
 
 <template>
@@ -66,7 +66,7 @@ const shortcutLabel = computed(() => (isMac ? '⌘F' : 'Ctrl F'))
 
       <!-- Recent tickers (analyse view only) -->
       <div v-if="view === 'analyse' && history.length"
-           class="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0">
+           class="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 scroll-fade-x">
         <span class="text-zinc-600 text-xs shrink-0">{{ t('header.recent') }}</span>
         <button v-for="h in history" :key="h" @click="$emit('search', h)"
           class="text-xs font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-md transition-colors shrink-0">

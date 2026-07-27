@@ -37,7 +37,8 @@ const {
   input, period, history,
   result: d, loading, error,
   chartData, chartLoading,
-  fundamentals, news,
+  fundamentals, fundamentalsLoading, fundamentalsReady,
+  news, newsLoading, newsReady,
   backtest, backtestLoading, backtestError,
   scoreContribs, scoreContribMax,
   search,
@@ -66,7 +67,8 @@ const activeSection = ref('section-apercu')
 let _observer = null
 
 function scrollToSection(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
 }
 
 function setupSectionObserver() {
@@ -99,9 +101,19 @@ function goToAnalyse(ticker) {
 // ── Global quick-search modal (Ctrl/Cmd + F) ──────────────────────
 const searchModalOpen = ref(false)
 
+function isTypingTarget(el) {
+  if (!el) return false
+  const tag = el.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
+}
+
 function onGlobalKeydown(e) {
-  // Intercept the browser "find" shortcut to open our ticker/ISIN search.
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+  // Open our ticker/ISIN quick-search with Cmd/Ctrl+K (the industry-standard
+  // command-palette shortcut), or "/" when the user isn't already typing in a
+  // field. The browser's native Cmd/Ctrl+F ("find in page") is left untouched.
+  const openByCmdK = (e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')
+  const openBySlash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !isTypingTarget(e.target)
+  if (openByCmdK || openBySlash) {
     e.preventDefault()
     searchModalOpen.value = true
   }
@@ -141,11 +153,24 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
         />
       </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="flex flex-col items-center py-24 gap-4">
-        <div class="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-indigo-500 animate-spin"></div>
-        <p class="text-zinc-500 text-sm">{{ t('app.loadingData') }}</p>
-        <p class="text-zinc-600 text-xs">{{ t('app.loadingHint') }}</p>
+      <!-- Loading — skeleton mirroring the result layout (perceived speed, no CLS) -->
+      <div v-if="loading" class="space-y-3" aria-busy="true" aria-live="polite">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center gap-4">
+            <div class="h-10 w-44 rounded-lg bg-zinc-800/60 animate-pulse"></div>
+            <div class="h-10 w-24 rounded-lg bg-zinc-800/60 animate-pulse ml-auto"></div>
+          </div>
+          <div class="h-24 rounded-xl bg-zinc-800/40 animate-pulse"></div>
+        </div>
+        <div class="h-28 rounded-2xl bg-zinc-900 border border-zinc-800 animate-pulse"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3">
+          <div class="h-80 rounded-2xl bg-zinc-900 border border-zinc-800 animate-pulse"></div>
+          <div class="space-y-3">
+            <div class="h-36 rounded-2xl bg-zinc-900 border border-zinc-800 animate-pulse"></div>
+            <div class="h-36 rounded-2xl bg-zinc-900 border border-zinc-800 animate-pulse"></div>
+          </div>
+        </div>
+        <p class="text-center text-zinc-600 text-xs pt-2">{{ t('app.loadingData') }}</p>
       </div>
 
       <!-- Error -->
@@ -165,7 +190,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
 
         <!-- Pinned anchor menu -->
         <nav class="sticky top-14 z-30 -mx-4 md:-mx-6 xl:-mx-8 px-4 md:px-6 xl:px-8 py-2 bg-zinc-950/85 backdrop-blur-md border-b border-zinc-800/60">
-          <div class="flex gap-1 overflow-x-auto">
+          <div class="flex gap-1 overflow-x-auto scroll-fade-x">
             <button v-for="s in navSections" :key="s.id" @click="scrollToSection(s.id)"
               :class="['px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors',
                 activeSection === s.id
@@ -198,7 +223,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
         </div>
 
         <!-- Fundamentals (async) -->
-        <FundamentalsCard v-if="fundamentals" :fundamentals="fundamentals" />
+        <FundamentalsCard
+          v-if="fundamentalsLoading || fundamentalsReady"
+          :fundamentals="fundamentals"
+          :loading="fundamentalsLoading"
+        />
 
         <!-- 3. Analysis narrative -->
         <AnalysisNarrative :analysis="d.analysis" />
@@ -221,7 +250,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
         <BacktestPanel :data="backtest" :loading="backtestLoading" :error="backtestError" />
 
         <!-- News — last content block -->
-        <NewsList v-if="news && news.items.length" :items="news.items" />
+        <NewsList
+          v-if="newsLoading || newsReady"
+          :items="news?.items || []"
+          :loading="newsLoading"
+          :unavailable="newsReady && !news"
+        />
 
         <!-- Footer meta -->
         <div class="flex justify-between items-center text-xs text-zinc-700 px-1 pt-1">
