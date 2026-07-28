@@ -50,6 +50,13 @@ def init_db() -> None:
                 sma200 REAL,
                 PRIMARY KEY (ticker, date)
             );
+            CREATE TABLE IF NOT EXISTS positions (
+                ticker     TEXT PRIMARY KEY,
+                quantity   REAL NOT NULL,
+                avg_cost   REAL NOT NULL,
+                note       TEXT,
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
             """
         )
         # Migration: add sma200 to pre-existing backtest_scores tables.
@@ -166,4 +173,41 @@ def save_backtest_scores(ticker: str, rows: list) -> None:
             "price = excluded.price, score = excluded.score, sma200 = excluded.sma200",
             payload,
         )
+
+
+# ── Positions (portfolio) ──────────────────────────────────
+def get_positions() -> list:
+    """Return the stored positions: ``[{ticker, quantity, avg_cost, note, updated_at}]``."""
+    with _lock, _connect() as conn:
+        rows = conn.execute(
+            "SELECT ticker, quantity, avg_cost, note, updated_at "
+            "FROM positions ORDER BY updated_at DESC"
+        ).fetchall()
+    return [
+        {"ticker": t, "quantity": q, "avg_cost": a, "note": n, "updated_at": u}
+        for t, q, a, n, u in rows
+    ]
+
+
+def upsert_position(ticker: str, quantity: float, avg_cost: float, note: str | None = None) -> None:
+    """Insert or update a single position (one aggregated lot per ticker)."""
+    code = ticker.strip().upper()
+    if not code:
+        return
+    clean_note = (note or "").strip() or None
+    with _lock, _connect() as conn:
+        conn.execute(
+            "INSERT INTO positions (ticker, quantity, avg_cost, note) VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(ticker) DO UPDATE SET quantity = excluded.quantity, "
+            "avg_cost = excluded.avg_cost, note = excluded.note, updated_at = datetime('now')",
+            (code, float(quantity), float(avg_cost), clean_note),
+        )
+
+
+def remove_position(ticker: str) -> bool:
+    """Remove a position. Return ``True`` if it existed."""
+    code = ticker.strip().upper()
+    with _lock, _connect() as conn:
+        cur = conn.execute("DELETE FROM positions WHERE ticker = ?", (code,))
+        return cur.rowcount > 0
 

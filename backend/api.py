@@ -26,6 +26,7 @@ from charts import chart_data
 from fundamentals import fetch_fundamentals
 from market_data import download_batch
 from news import fetch_news
+from portfolio import build_portfolio
 from search import search_tickers
 from serialization import SafeJSONResponse
 
@@ -240,6 +241,48 @@ def favorites_remove(ticker_code: str):
     if not removed:
         raise HTTPException(status_code=404, detail=f"{ticker_code.upper()} n'est pas un favori")
     return {"favorites": db.get_favorites(), "removed": True}
+
+
+# ── Portfolio (positions persisted in SQLite) ────────────────────────
+class PositionBody(BaseModel):
+    quantity: float
+    avg_cost: float
+    note: str | None = None
+
+    @field_validator("quantity")
+    @classmethod
+    def _check_qty(cls, v):
+        if v <= 0:
+            raise ValueError("quantity must be > 0")
+        return v
+
+    @field_validator("avg_cost")
+    @classmethod
+    def _check_cost(cls, v):
+        if v < 0:
+            raise ValueError("avg_cost must be >= 0")
+        return v
+
+
+@app.get("/portfolio", summary="Portfolio with live valuation", tags=["portfolio"])
+async def portfolio_get():
+    """Return every stored position enriched with its live price, P&L and weight."""
+    return await asyncio.to_thread(build_portfolio)
+
+
+@app.put("/portfolio/{ticker_code}", summary="Add or update a position", tags=["portfolio"])
+async def portfolio_upsert(ticker_code: str, body: PositionBody):
+    """Insert or update a position (one aggregated lot per ticker)."""
+    db.upsert_position(ticker_code, body.quantity, body.avg_cost, body.note)
+    return await asyncio.to_thread(build_portfolio)
+
+
+@app.delete("/portfolio/{ticker_code}", summary="Remove a position", tags=["portfolio"])
+async def portfolio_remove(ticker_code: str):
+    removed = db.remove_position(ticker_code)
+    if not removed:
+        raise HTTPException(status_code=404, detail=f"{ticker_code.upper()} not in portfolio")
+    return await asyncio.to_thread(build_portfolio)
 
 
 # ── Batch analysis ────────────────────────────────────────────────────────────

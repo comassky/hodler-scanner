@@ -92,10 +92,14 @@ The result is condensed into a **single opportunity score**, transparently broke
 - 🗂️ **Batch analysis** (up to 50 tickers in parallel).
 - 📊 **Interactive charts**: price + SMA 200/50, volume, **Fibonacci levels**, **Bollinger bands** (togglable), RSI 14 and MACD histogram sub-charts, plus an annotated **price/RSI divergence** detector.
 - ↕️ **Dashboard sorting** — sort the watchlist by score (highest first by default), change, or name.
-- ⌨️ **Quick-search modal** — `Ctrl/⌘ K` (or `/`) opens a command-palette search (name / symbol / **ISIN**) from anywhere in the app.
-- � **Recent news feed** per ticker (Yahoo Finance headlines with publisher, date and thumbnail).
+- ⌨️ **Quick-search modal** — `Ctrl/⌘ K` (or `/`) opens a command-palette search (name / symbol / **ISIN**) from anywhere in the app, with full keyboard navigation (↑↓ / ↵ / esc) and a focus trap.
+- ♿ **Accessible, low-jank UI** — skeleton loaders that mirror the final layout (fast perceived load, no layout shift), inline “unavailable” states instead of silently hiding failed sections, and full **`prefers-reduced-motion`** support.
+- 📰 **Recent news feed** per ticker (Yahoo Finance headlines with publisher, date and thumbnail).
 - 🔄 **Forced refresh** (cache bypass) per ticker.
 - 🧪 **Score backtest with a plain-language verdict** — replays the exact scoring engine over **up to ~10 years** of history and shows realized forward returns (**3M / 6M / 12M / 3Y / 5Y**) grouped by score band, each measured **against a buy-anytime baseline**. A **verdict banner** states, per ticker and horizon, whether buying on high scores actually **beat buying at a random time** (the real signal — *being positive isn't enough, it must beat the baseline*), alongside a **color-coded score-vs-price timeline** and a score/return correlation.
+- 📈 **Score history distribution** — a histogram of the ticker's own ~10-year score range showing where **today's score sits versus its past** (current bin highlighted, percentile, min / median / max).
+- 🎛️ **Strategy backtest** — a weekly simulation that stays invested only while the score is above an **adjustable threshold** (otherwise in cash) versus staying fully invested, with an **equity curve**, CAGR, **max drawdown**, exposure and switch count, plus a verdict on whether score-timing beat buy &amp; hold on that stock.
+- 💼 **Portfolio tracking** — add positions (quantity, average cost, note), get **live valuation, P&amp;L, and allocation weights**, jump to full analysis from any holding; persisted server-side in SQLite.
 - ⭐ **Persisted watchlist** (localStorage front-side + SQLite server-side) + search history.
 - 🌗 **Light / dark theme** with dynamic chart re-coloring.
 - 🌍 **Full English / French localization** — both the UI and the backend-generated analysis text, with the choice persisted in localStorage.
@@ -134,7 +138,7 @@ flowchart LR
         CACHE["TTL caches<br/>backend/cache.py"]
         ENGINE["Business logic<br/>backend/analysis.py · charts.py<br/>fundamentals.py · news.py · search.py<br/>market_data.py · script.py"]
         I18N["Language files<br/>backend/i18n.py · backend/locales/*.json"]
-        DB[("SQLite<br/>backend/db.py<br/>watchlist · name cache")]
+        DB[("SQLite<br/>backend/db.py<br/>watchlist · portfolio · name cache")]
         STATIC["Static SPA mounted on /"]
     end
 
@@ -143,6 +147,7 @@ flowchart LR
 
     VUE -- \"GET /ticker/… /chart /fundamentals /news\" --> API
     VUE -- \"GET/PUT/POST/DELETE /favorites\" --> API
+    VUE -- \"GET/PUT/DELETE /portfolio\" --> API
     API --> CACHE
     API --> I18N
     API -- "favorites · ticker names" --> DB
@@ -371,6 +376,9 @@ Default base URL: `http://localhost:8000` — interactive documentation at **`/d
 | `PUT` | `/favorites` | Replace the entire favorites list (`{ "tickers": [...] }`) |
 | `POST` | `/favorites/{code}` | Add a favorite |
 | `DELETE` | `/favorites/{code}` | Remove a favorite |
+| `GET` | `/portfolio` | Portfolio with live valuation, P&L and allocation weights |
+| `PUT` | `/portfolio/{code}` | Add or update a position (`{ "quantity": …, "avg_cost": …, "note": … }`) |
+| `DELETE` | `/portfolio/{code}` | Remove a position |
 
 <details>
 <summary><b>Example response for <code>GET /ticker/MC.PA</code> (excerpt)</b></summary>
@@ -420,15 +428,20 @@ Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 
 **Components** (`src/components/`)
 - `DashboardView` / `DashboardCard` — watchlist dashboard view (with score/change/name sorting)
+- `PortfolioView` — portfolio holdings table: add/edit positions, live valuation, P&L and allocation bars
 - `TickerSearch` — search bar + history
-- `SearchModal` — `Ctrl/⌘ K` (or `/`) command-palette quick search (name / symbol / ISIN)
+- `SearchModal` — `Ctrl/⌘ K` (or `/`) command-palette quick search (name / symbol / ISIN), keyboard-navigable with a focus trap
 - `TickerCharts` — Chart.js charts (price/SMA/volume + Fibonacci + Bollinger, RSI, MACD, divergences), zoom/pan, Fibonacci & Bollinger toggles
 - `BacktestPanel` — historical score backtest: verdict banner, forward-return-by-band bar chart vs the buy-anytime baseline, and a color-coded score/price timeline
-- `NewsList` — recent news feed (publisher, date, thumbnail) for the analyzed ticker
+- `analysis/ScoreHistory` — histogram of the ticker's own ~10-year score distribution (current score highlighted, percentile & quartiles)
+- `analysis/StrategyBacktest` — score-timed exposure vs buy &amp; hold equity curve with an adjustable threshold (CAGR, max drawdown, exposure)
+- `NewsList` — recent news feed (publisher, date, thumbnail) for the analyzed ticker, with skeleton loading and inline empty/unavailable states
 - `InfoTip` — structured educational tooltips (title, formula, colored scale, tip)
 - `AppHeader` — header + quick-search shortcut, theme and language switchers
 
 **Composables** (`src/composables/`)
+- `useTickerAnalysis` — data layer: active ticker + TanStack queries (analysis, chart, fundamentals, news, backtest) and the search action
+- `usePortfolio` — portfolio data layer: TanStack query + add/update/remove mutations with live valuation
 - `useFormatters` — formatting (numbers, %, color classes based on thresholds)
 - `useI18n` — English/French message catalog + locale persistence
 - `useTheme` — persistent light/dark theme

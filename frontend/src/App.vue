@@ -5,10 +5,13 @@ import TickerSearch   from './components/TickerSearch.vue'
 import SearchModal    from './components/SearchModal.vue'
 import TickerCharts   from './components/TickerCharts.vue'
 import DashboardView  from './components/DashboardView.vue'
+import PortfolioView  from './components/PortfolioView.vue'
 import NewsList       from './components/NewsList.vue'
 import BacktestPanel  from './components/BacktestPanel.vue'
 import AnalysisOverview  from './components/analysis/AnalysisOverview.vue'
 import EntryTiming       from './components/analysis/EntryTiming.vue'
+import ScoreHistory      from './components/analysis/ScoreHistory.vue'
+import StrategyBacktest  from './components/analysis/StrategyBacktest.vue'
 import IndicatorsCard    from './components/analysis/IndicatorsCard.vue'
 import KeyLevelsCard     from './components/analysis/KeyLevelsCard.vue'
 import FundamentalsCard  from './components/analysis/FundamentalsCard.vue'
@@ -27,7 +30,7 @@ const { t, locale } = useI18n()
 const appVersion = __APP_VERSION__
 
 // ── Navigation ────────────────────────────────────────────────────
-const view = ref('analyse')
+const view = ref('watchlist')
 
 // ── Watchlist (singleton) ─────────────────────────────────────────
 const { watchlist, toggle, has } = useWatchlist()
@@ -51,14 +54,16 @@ const navSections = computed(() => {
   const s = [
     { id: 'section-apercu',      label: t('sections.overview') },
     { id: 'section-timing',      label: t('sections.timing') },
-    { id: 'section-graphiques',  label: t('sections.charts') },
-    { id: 'section-indicateurs', label: t('sections.indicators') },
   ]
+  if (backtest.value?.timing) s.push({ id: 'section-scorehist', label: t('sections.scoreHist') })
+  s.push({ id: 'section-graphiques',  label: t('sections.charts') })
+  s.push({ id: 'section-indicateurs', label: t('sections.indicators') })
   if (fundamentals.value) s.push({ id: 'section-fondamentaux', label: t('sections.fundamentals') })
   s.push({ id: 'section-analyse', label: t('sections.analysis') })
   if (scoreContribs.value.length) s.push({ id: 'section-score', label: t('sections.score') })
   if (d.value?.analysis?.diagnostics?.length) s.push({ id: 'section-forces', label: t('sections.forces') })
   s.push({ id: 'section-backtest', label: t('sections.backtest') })
+  if (backtest.value) s.push({ id: 'section-strategy', label: t('sections.strategy') })
   if (news.value && news.value.items.length) s.push({ id: 'section-actualites', label: t('sections.news') })
   return s
 })
@@ -213,6 +218,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
         <!-- 1b. Entry timing — is now a good moment to buy & hold? -->
         <EntryTiming :data="backtest" :loading="backtestLoading" />
 
+        <!-- 1c. Score history — where does today's score sit vs its own past? -->
+        <ScoreHistory :data="backtest" :loading="backtestLoading" />
+
         <!-- 2. Two-column: Charts (left) + Sidebar (right) -->
         <div id="section-graphiques" class="scroll-mt-28 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3">
           <TickerCharts v-model:period="period" :data="chartData" :loading="chartLoading" />
@@ -249,6 +257,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
         <!-- Backtest — score credibility check -->
         <BacktestPanel :data="backtest" :loading="backtestLoading" :error="backtestError" />
 
+        <!-- Strategy backtest — score-timed exposure vs buy & hold (equity curve) -->
+        <StrategyBacktest :data="backtest" :loading="backtestLoading" />
+
         <!-- News — last content block -->
         <NewsList
           v-if="newsLoading || newsReady"
@@ -272,7 +283,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
       class="flex-1"
       @analyse="goToAnalyse"
     />
-
+    <!-- ═════ PORTFOLIO ═══════════════════════════ -->
+    <PortfolioView
+      v-else-if="view === 'portfolio'"
+      class="flex-1"
+      @analyse="goToAnalyse"
+    />
     <!-- ═════ FOOTER ═══════════════════════════════════════════ -->
     <footer class="border-t border-zinc-800/60 px-4 md:px-6 xl:px-8 py-5">
       <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500">

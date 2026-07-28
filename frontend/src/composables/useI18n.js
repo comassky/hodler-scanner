@@ -19,7 +19,7 @@ function setLocale(l) {
 const messages = {
   en: {
     header: {
-      analysis: 'Analysis', dashboard: 'Dashboard', recent: 'Recent:',
+      analysis: 'Analysis', dashboard: 'Dashboard', portfolio: 'Portfolio', recent: 'Recent:',
       themeDark: 'Dark', themeGray: 'Gray', themeLight: 'Light',
     },
     search: {
@@ -60,6 +60,41 @@ const messages = {
       overview: 'Overview', timing: 'Timing', charts: 'Charts', indicators: 'Indicators',
       fundamentals: 'Fundamentals', news: 'News', analysis: 'Analysis',
       score: 'Score', forces: 'Strengths & risks', backtest: 'Backtest',
+      scoreHist: 'Score history', strategy: 'Strategy',
+    },
+    portfolio: {
+      title: 'Portfolio',
+      subtitle: 'Track your holdings, live valuation and allocation',
+      refresh: 'Refresh',
+      totalValue: 'Value', totalCost: 'Cost', totalPnl: 'P&L', totalPnlPct: 'P&L %',
+      ticker: 'Ticker', tickerPlaceholder: 'AAPL, MC.PA…',
+      quantity: 'Quantity', avgCost: 'Avg cost', price: 'Price', value: 'Value',
+      pnl: 'P&L', weight: 'Weight', note: 'Note', notePlaceholder: 'optional',
+      add: 'Add', save: 'Save', cancel: 'Cancel', edit: 'Edit', remove: 'Remove',
+      empty: 'No position yet. Add your first holding above.',
+      pricingWarning: 'Some positions could not be priced (missing market data).',
+      updated: 'Updated',
+    },
+    scoreHist: {
+      title: 'Score history',
+      subtitle: 'Where does today\u2019s score sit versus its own 10-year range?',
+      current: 'Current', percentile: 'Percentile', min: 'Min', median: 'Median', max: 'Max',
+      weeks: '{n} weeks',
+      guide: 'The highlighted bar is where the score stands today — above {pct}% of its own history.',
+      unavailable: 'Not enough history to build the distribution.',
+    },
+    strategy: {
+      title: 'Strategy backtest',
+      subtitle: 'Score-timed exposure vs staying fully invested (buy & hold)',
+      threshold: 'Invest when score ≥',
+      exposure: '{pct}% of the time in market',
+      strategy: 'Score-timed', buyHold: 'Buy & Hold',
+      stratReturn: 'Strategy', cagr: 'CAGR', maxDD: 'Max drawdown',
+      trades: 'Switches', years: 'yrs',
+      verdictBeat: 'Investing only while the score was ≥ {thr} returned {s}, ahead of buy & hold ({b}).',
+      verdictLag: 'Timing entries at score ≥ {thr} returned {s}, behind simply holding ({b}) — on this stock, staying invested won.',
+      disclaimer: 'Simplified weekly simulation, no fees or slippage, ends ~3 months before today (realized returns required). Illustrative, not investment advice.',
+      unavailable: 'Not enough history to simulate a strategy.',
     },
     scoreComp: {
       SMA: 'SMA 200/50w', Tend: 'Trend', '52H': '52W High', '52L': '52W Low',
@@ -200,6 +235,16 @@ const messages = {
         title: 'Score vs price',
         text: 'The historical score (left axis, 0–100) plotted against the price (right axis) over time.',
         tip: 'Check whether score peaks and troughs lined up with the later price moves.',
+      },
+      scoreHist: {
+        title: 'Score distribution',
+        text: 'How often the stock has historically sat in each score range (10-point bins) over ~10 years. The bright bar is where it stands today.',
+        tip: 'A score far to the right of its usual range means the setup is historically rare and strong for this stock.',
+      },
+      strategy: {
+        title: 'Strategy backtest',
+        text: 'A weekly simulation that stays invested only while the score is above your threshold (otherwise in cash), compared with staying fully invested the entire time.',
+        tip: 'If the timed strategy beats buy & hold with a smaller drawdown, the score adds timing value on this stock.',
       },
       signals: {
         title: 'Signals',
@@ -480,7 +525,7 @@ const messages = {
   },
   fr: {
     header: {
-      analysis: 'Analyse', dashboard: 'Dashboard', recent: 'Récents :',
+      analysis: 'Analyse', dashboard: 'Dashboard', portfolio: 'Portefeuille', recent: 'Récents :',
       themeDark: 'Noir', themeGray: 'Gris', themeLight: 'Clair',
     },
     search: {
@@ -521,6 +566,41 @@ const messages = {
       overview: 'Aperçu', timing: 'Timing', charts: 'Graphiques', indicators: 'Indicateurs',
       fundamentals: 'Fondamentaux', news: 'Actualités', analysis: 'Analyse',
       score: 'Score', forces: 'Forces & risques', backtest: 'Backtest',
+      scoreHist: 'Historique du score', strategy: 'Stratégie',
+    },
+    portfolio: {
+      title: 'Portefeuille',
+      subtitle: 'Suivez vos positions, leur valorisation et leur répartition',
+      refresh: 'Rafraîchir',
+      totalValue: 'Valeur', totalCost: 'Coût', totalPnl: 'P&L', totalPnlPct: 'P&L %',
+      ticker: 'Ticker', tickerPlaceholder: 'AAPL, MC.PA…',
+      quantity: 'Quantité', avgCost: 'PRU', price: 'Cours', value: 'Valeur',
+      pnl: 'P&L', weight: 'Poids', note: 'Note', notePlaceholder: 'optionnel',
+      add: 'Ajouter', save: 'Enregistrer', cancel: 'Annuler', edit: 'Modifier', remove: 'Supprimer',
+      empty: 'Aucune position. Ajoutez votre première ligne ci-dessus.',
+      pricingWarning: 'Certaines positions n’ont pas pu être valorisées (données de marché manquantes).',
+      updated: 'Mis à jour',
+    },
+    scoreHist: {
+      title: 'Historique du score',
+      subtitle: 'Où se situe le score du jour face à ses 10 dernières années ?',
+      current: 'Actuel', percentile: 'Percentile', min: 'Min', median: 'Médiane', max: 'Max',
+      weeks: '{n} semaines',
+      guide: 'La barre en surbrillance indique le score du jour — supérieur à {pct}% de son propre historique.',
+      unavailable: 'Historique insuffisant pour construire la distribution.',
+    },
+    strategy: {
+      title: 'Backtest de stratégie',
+      subtitle: 'Exposition pilotée par le score vs rester investi (buy & hold)',
+      threshold: 'Investir si score ≥',
+      exposure: '{pct}% du temps exposé',
+      strategy: 'Piloté par le score', buyHold: 'Buy & Hold',
+      stratReturn: 'Stratégie', cagr: 'TCAM', maxDD: 'Perte max',
+      trades: 'Bascules', years: 'ans',
+      verdictBeat: 'Investir uniquement quand le score était ≥ {thr} rapporte {s}, devant le buy & hold ({b}).',
+      verdictLag: 'Timer les entrées à score ≥ {thr} rapporte {s}, en retrait du simple maintien ({b}) — sur ce titre, rester investi l’emporte.',
+      disclaimer: 'Simulation hebdomadaire simplifiée, sans frais ni slippage, s’arrête ~3 mois avant aujourd’hui (rendements réalisés requis). À titre indicatif, pas un conseil.',
+      unavailable: 'Historique insuffisant pour simuler une stratégie.',
     },
     scoreComp: {
       SMA: 'SMA 200/50w', Tend: 'Tendance', '52H': '52W High', '52L': '52W Low',
@@ -661,6 +741,16 @@ const messages = {
         title: 'Score vs cours',
         text: 'Le score historique (axe gauche, 0–100) tracé face au cours (axe droit) au fil du temps.',
         tip: 'Vérifie si les sommets et creux du score coïncident avec les mouvements de cours ultérieurs.',
+      },
+      scoreHist: {
+        title: 'Distribution du score',
+        text: 'Fréquence à laquelle le titre a historiquement occupé chaque tranche de score (paliers de 10 pts) sur ~10 ans. La barre vive indique la position du jour.',
+        tip: 'Un score très à droite de sa plage habituelle signale un setup historiquement rare et fort pour ce titre.',
+      },
+      strategy: {
+        title: 'Backtest de stratégie',
+        text: 'Une simulation hebdomadaire qui reste investie uniquement quand le score dépasse votre seuil (sinon en cash), comparée au fait de rester investi en permanence.',
+        tip: 'Si la stratégie pilotée bat le buy & hold avec une perte max plus faible, le score apporte une valeur de timing sur ce titre.',
       },
       signals: {
         title: 'Signaux',

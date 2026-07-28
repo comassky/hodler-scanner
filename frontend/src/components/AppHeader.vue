@@ -62,6 +62,11 @@ const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl K'))
           <span class="bg-zinc-700/80 text-zinc-400 px-1.5 rounded-full text-xs leading-none"
                 style="padding-top:2px;padding-bottom:2px">{{ watchlistCount }}</span>
         </button>
+        <button @click="$emit('update:view', 'portfolio')"
+          :class="['px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+            view === 'portfolio' ? 'bg-zinc-800 text-zinc-100 shadow' : 'text-zinc-500 hover:text-zinc-300']">
+          {{ t('header.portfolio') }}
+        </button>
       </nav>
 
       <!-- Recent tickers (analyse view only) -->
