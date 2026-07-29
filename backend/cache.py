@@ -57,3 +57,12 @@ fund_cache     = TTLCache(ttl_seconds=7200)   # 2 h   — fundamentals
 news_cache     = TTLCache(ttl_seconds=1800)   # 30 min — news
 raw_cache      = TTLCache(ttl_seconds=900)    # 15 min — raw OHLCV DataFrames
 backtest_cache = TTLCache(ttl_seconds=21600)  # 6 h   — historical backtests
+
+_ALL_CACHES = (
+    analysis_cache, chart_cache, fund_cache, news_cache, raw_cache, backtest_cache,
+)
+
+
+def clear_all_caches() -> int:
+    """Clear every shared in-memory cache. Return the total entries removed."""
+    return sum(c.clear() for c in _ALL_CACHES)

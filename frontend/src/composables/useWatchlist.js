@@ -60,5 +60,10 @@ export function useWatchlist() {
     return watchlist.value.includes(ticker)
   }
 
-  return { watchlist, add, remove, toggle, has, ready }
+  // Clear the local watchlist mirror (used after a server-side data reset).
+  function reset() {
+    watchlist.value = []
+  }
+
+  return { watchlist, add, remove, toggle, has, reset, ready }
 }

@@ -6,6 +6,7 @@ import SearchModal    from './components/SearchModal.vue'
 import TickerCharts   from './components/TickerCharts.vue'
 import DashboardView  from './components/DashboardView.vue'
 import PortfolioView  from './components/PortfolioView.vue'
+import ResetModal     from './components/ResetModal.vue'
 import NewsList       from './components/NewsList.vue'
 import BacktestPanel  from './components/BacktestPanel.vue'
 import AnalysisOverview  from './components/analysis/AnalysisOverview.vue'
@@ -21,6 +22,7 @@ import DiagnosticsCards  from './components/analysis/DiagnosticsCards.vue'
 import { useWatchlist }      from './composables/useWatchlist.js'
 import { useI18n }           from './composables/useI18n.js'
 import { useTickerAnalysis } from './composables/useTickerAnalysis.js'
+import { useQueryClient }    from '@tanstack/vue-query'
 
 // ── i18n ──────────────────────────────────────────────
 const { t, locale } = useI18n()
@@ -33,7 +35,9 @@ const appVersion = __APP_VERSION__
 const view = ref('watchlist')
 
 // ── Watchlist (singleton) ─────────────────────────────────────────
-const { watchlist, toggle, has } = useWatchlist()
+const { watchlist, toggle, has, reset: resetWatchlist } = useWatchlist()
+
+const queryClient = useQueryClient()
 
 // ── Analysis data layer ───────────────────────────────────────────
 const {
@@ -103,6 +107,26 @@ function goToAnalyse(ticker) {
   nextTick(() => search(ticker))
 }
 
+// ── Reset (selective clear of caches + DB rows) ─────────────────
+const resetModalOpen = ref(false)
+async function onResetConfirm(options, done) {
+  try {
+    const res = await fetch('/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (options.watchlist) resetWatchlist()
+    await queryClient.invalidateQueries()
+    if (options.portfolio && view.value === 'portfolio') view.value = 'watchlist'
+  } catch (e) {
+    window.alert(t('reset.error'))
+  } finally {
+    done?.()
+  }
+}
+
 // ── Global quick-search modal (Ctrl/Cmd + F) ──────────────────────
 const searchModalOpen = ref(false)
 
@@ -142,6 +166,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
       :history="history"
       @search="search"
       @open-search="searchModalOpen = true"
+      @reset="resetModalOpen = true"
     />
     <!-- ═════ ANALYSIS ═══════════════════════════════════════════ -->
     <main v-if="view === 'analyse'" class="flex-1 px-4 md:px-6 xl:px-8 py-8 pb-20">
@@ -308,6 +333,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
       :open="searchModalOpen"
       @close="searchModalOpen = false"
       @search="onModalSearch"
+    />
+
+    <!-- Reset data modal (per-type toggles) -->
+    <ResetModal
+      :open="resetModalOpen"
+      @close="resetModalOpen = false"
+      @confirm="onResetConfirm"
     />
 
   </div>

@@ -211,3 +211,34 @@ def remove_position(ticker: str) -> bool:
         cur = conn.execute("DELETE FROM positions WHERE ticker = ?", (code,))
         return cur.rowcount > 0
 
+
+# ── Maintenance ─────────────────────────────────────────────────────
+def reset_data(
+    favorites: bool = False,
+    positions: bool = False,
+    backtest_scores: bool = False,
+    ticker_names: bool = False,
+) -> dict:
+    """Delete rows from the selected tables only. Return rows deleted per table.
+
+    Each flag maps to a table: ``favorites`` (watchlist), ``positions``
+    (portfolio), ``backtest_scores`` (stored backtests) and ``ticker_names``
+    (the name/ISIN lookup dictionary). Unselected tables are left untouched.
+    """
+    wanted = {
+        "favorites": favorites,
+        "positions": positions,
+        "backtest_scores": backtest_scores,
+        "ticker_names": ticker_names,
+    }
+    tables = [name for name, on in wanted.items() if on]
+    counts: dict = {}
+    if not tables:
+        return counts
+    with _lock, _connect() as conn:
+        for table in tables:
+            n = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            conn.execute(f"DELETE FROM {table}")
+            counts[table] = n
+    return counts
+

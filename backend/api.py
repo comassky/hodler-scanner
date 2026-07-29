@@ -21,7 +21,7 @@ from pydantic import BaseModel, field_validator
 import db
 from analysis import analyse_ticker
 from backtest import run_backtest
-from cache import analysis_cache
+from cache import analysis_cache, clear_all_caches
 from charts import chart_data
 from fundamentals import fetch_fundamentals
 from market_data import download_batch
@@ -205,6 +205,32 @@ def cache_invalidate(ticker_code: str):
     if not found:
         raise HTTPException(status_code=404, detail=f"{ticker_code.upper()} not in cache")
     return {"invalidated": ticker_code.upper()}
+
+
+class ResetBody(BaseModel):
+    caches:    bool = False
+    watchlist: bool = False
+    portfolio: bool = False
+    backtests: bool = False
+    tickers:   bool = False
+
+
+@app.post("/reset", summary="Clear selected caches and DB data", tags=["cache"])
+def reset_all(body: ResetBody):
+    """Selectively wipe in-memory caches and DB rows per data type.
+
+    Each flag is opt-in: ``caches`` (in-memory analyses/charts/news…),
+    ``watchlist`` (favorites), ``portfolio`` (positions), ``backtests``
+    (stored score history) and ``tickers`` (the name/ISIN dictionary).
+    """
+    cleared = clear_all_caches() if body.caches else 0
+    deleted = db.reset_data(
+        favorites=body.watchlist,
+        positions=body.portfolio,
+        backtest_scores=body.backtests,
+        ticker_names=body.tickers,
+    )
+    return {"cache_cleared": cleared, "deleted": deleted}
 
 
 # ── Favorites (watchlist persisted in SQLite) ────────────────────────
