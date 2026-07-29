@@ -37,8 +37,11 @@ from script import (
     generer_analyse_investisseur_lt,
 )
 
-# Forward-return horizons in trading days (≈ 3M, 6M, 12M, 3Y and 5Y).
-HORIZONS = (63, 126, 252, 756, 1260)
+# Forward-return horizons in trading days (≈ 3M, 6M, 12M).
+# Multi-year horizons (3Y/5Y) are intentionally excluded: over a ~10y window a
+# 5Y forward return can only use entries ≥ 5y old (few, dated) and weekly samples
+# overlap almost entirely — their averages look robust but are statistically hollow.
+HORIZONS = (63, 126, 252)
 PRIMARY_HORIZON = 126
 _WARMUP = 252            # sessions of history required before the first sample
 _HISTORY_PERIOD = "10y"  # downloaded window (long enough for multi-year horizons)

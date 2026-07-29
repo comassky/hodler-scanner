@@ -14,12 +14,8 @@ const props = defineProps({
   error:   { type: String,  default: null },
 })
 
-// ── Horizon selector (trading days → ≈ months/years label) ────────
-const yearUnit = computed(() => (locale.value === 'fr' ? 'A' : 'Y'))
-const HORIZON_LABELS = computed(() => ({
-  63: '3M', 126: '6M', 252: '12M',
-  756: `3${yearUnit.value}`, 1260: `5${yearUnit.value}`,
-}))
+// ── Horizon selector (trading days → ≈ months label) ────────
+const HORIZON_LABELS = { 63: '3M', 126: '6M', 252: '12M' }
 const horizon = ref('126')
 const horizons = computed(() => props.data?.horizons_days ?? [63, 126, 252])
 watch(() => props.data, v => {
@@ -107,7 +103,7 @@ const verdictMessage = computed(() => {
   const v = verdict.value
   if (!v) return null
   if (v.tone === 'nodata') return t('backtest.verdictNoData')
-  const params = { delta: pct(v.delta), h: HORIZON_LABELS.value[horizon.value] }
+  const params = { delta: pct(v.delta), h: HORIZON_LABELS[horizon.value] }
   return t(`backtest.verdict_${v.tone}`, params)
 })
 

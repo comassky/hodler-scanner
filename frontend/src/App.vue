@@ -23,6 +23,7 @@ import { useWatchlist }      from './composables/useWatchlist.js'
 import { useI18n }           from './composables/useI18n.js'
 import { useTickerAnalysis } from './composables/useTickerAnalysis.js'
 import { useQueryClient }    from '@tanstack/vue-query'
+import { useLocalStorage }   from '@vueuse/core'
 
 // ── i18n ──────────────────────────────────────────────
 const { t, locale } = useI18n()
@@ -53,53 +54,33 @@ const {
 
 const isWatchlisted = computed(() => (d.value ? has(d.value.ticker) : false))
 
-// ── Anchor navigation ─────────────────────────────────────────────
-const navSections = computed(() => {
-  const s = [
-    { id: 'section-apercu',      label: t('sections.overview') },
-    { id: 'section-timing',      label: t('sections.timing') },
-  ]
-  if (backtest.value?.timing) s.push({ id: 'section-scorehist', label: t('sections.scoreHist') })
-  s.push({ id: 'section-graphiques',  label: t('sections.charts') })
-  s.push({ id: 'section-indicateurs', label: t('sections.indicators') })
-  if (fundamentals.value) s.push({ id: 'section-fondamentaux', label: t('sections.fundamentals') })
-  s.push({ id: 'section-analyse', label: t('sections.analysis') })
-  if (scoreContribs.value.length) s.push({ id: 'section-score', label: t('sections.score') })
-  if (d.value?.analysis?.diagnostics?.length) s.push({ id: 'section-forces', label: t('sections.forces') })
-  s.push({ id: 'section-backtest', label: t('sections.backtest') })
-  if (backtest.value) s.push({ id: 'section-strategy', label: t('sections.strategy') })
-  if (news.value && news.value.items.length) s.push({ id: 'section-actualites', label: t('sections.news') })
-  return s
+// ── Detail tabs (progressive disclosure of the analysis sections) ──
+// The decision core (overview + entry timing) stays pinned above; everything
+// else is split into tabs so only the group being read is rendered.
+const TAB_DEFS = [
+  { id: 'charts',   label: () => t('tabs.charts') },
+  { id: 'score',    label: () => t('tabs.score') },
+  { id: 'analysis', label: () => t('tabs.analysis') },
+  { id: 'backtest', label: () => t('tabs.backtest') },
+  { id: 'context',  label: () => t('tabs.context') },
+]
+
+const availableTabs = computed(() => {
+  const has = {
+    charts:   true,
+    score:    scoreContribs.value.length > 0 || !!backtest.value?.timing,
+    analysis: !!d.value?.analysis,
+    backtest: true,
+    context:  fundamentalsLoading.value || fundamentalsReady.value || newsLoading.value || newsReady.value,
+  }
+  return TAB_DEFS.filter(tb => has[tb.id]).map(tb => ({ id: tb.id, label: tb.label() }))
 })
 
-const activeSection = ref('section-apercu')
-let _observer = null
-
-function scrollToSection(id) {
-  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-  document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
-}
-
-function setupSectionObserver() {
-  _observer?.disconnect()
-  const els = navSections.value
-    .map(s => document.getElementById(s.id))
-    .filter(Boolean)
-  if (!els.length) return
-  _observer = new IntersectionObserver((entries) => {
-    const visible = entries
-      .filter(e => e.isIntersecting)
-      .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-    if (visible.length) activeSection.value = visible[0].target.id
-  }, { rootMargin: '-100px 0px -55% 0px', threshold: 0 })
-  els.forEach(el => _observer.observe(el))
-}
-
-watch(() => [d.value, fundamentals.value, news.value, backtest.value], () => {
-  nextTick(setupSectionObserver)
-})
-
-onBeforeUnmount(() => _observer?.disconnect())
+const activeTab = useLocalStorage('smm_analysis_tab', 'charts')
+// Fall back to the first available tab whenever the current one has no data.
+watch(availableTabs, (tabs) => {
+  if (tabs.length && !tabs.some(tb => tb.id === activeTab.value)) activeTab.value = tabs[0].id
+}, { immediate: true })
 
 // ── Dashboard → Analysis ──────────────────────────────────────────
 function goToAnalyse(ticker) {
@@ -218,20 +199,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
       <!-- ── Result ───────────────────────────────────────────── -->
       <div v-else-if="d" class="space-y-3">
 
-        <!-- Pinned anchor menu -->
-        <nav class="sticky top-14 z-30 -mx-4 md:-mx-6 xl:-mx-8 px-4 md:px-6 xl:px-8 py-2 bg-zinc-950/85 backdrop-blur-md border-b border-zinc-800/60">
-          <div class="flex gap-1 overflow-x-auto scroll-fade-x">
-            <button v-for="s in navSections" :key="s.id" @click="scrollToSection(s.id)"
-              :class="['px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors',
-                activeSection === s.id
-                  ? 'bg-indigo-500/15 text-indigo-300'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60']">
-              {{ s.label }}
-            </button>
-          </div>
-        </nav>
-
-        <!-- 1. Overview header + signals -->
+        <!-- Decision core — always visible -->
         <AnalysisOverview
           :data="d"
           :is-watchlisted="isWatchlisted"
@@ -239,59 +207,73 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKeydown))
           @toggle="toggle"
           @refresh="search($event, true)"
         />
-
-        <!-- 1b. Entry timing — is now a good moment to buy & hold? -->
         <EntryTiming :data="backtest" :loading="backtestLoading" />
 
-        <!-- 1c. Score history — where does today's score sit vs its own past? -->
-        <ScoreHistory :data="backtest" :loading="backtestLoading" />
+        <!-- Pinned tab bar -->
+        <nav class="sticky top-14 z-30 -mx-4 md:-mx-6 xl:-mx-8 px-4 md:px-6 xl:px-8 py-2 bg-zinc-950/85 backdrop-blur-md border-b border-zinc-800/60">
+          <div class="flex gap-1 overflow-x-auto scroll-fade-x" role="tablist">
+            <button v-for="tb in availableTabs" :key="tb.id" @click="activeTab = tb.id"
+              role="tab" :aria-selected="activeTab === tb.id"
+              :class="['px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors',
+                activeTab === tb.id
+                  ? 'bg-indigo-500/15 text-indigo-300'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60']">
+              {{ tb.label }}
+            </button>
+          </div>
+        </nav>
 
-        <!-- 2. Two-column: Charts (left) + Sidebar (right) -->
-        <div id="section-graphiques" class="scroll-mt-28 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3">
-          <TickerCharts v-model:period="period" :data="chartData" :loading="chartLoading" />
-          <div class="space-y-3">
-            <IndicatorsCard :indicators="d.indicators" />
-            <KeyLevelsCard :indicators="d.indicators" :distances="d.distances" />
+        <!-- Charts tab -->
+        <div v-if="activeTab === 'charts'" class="space-y-3">
+          <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-3">
+            <TickerCharts v-model:period="period" :data="chartData" :loading="chartLoading" />
+            <div class="space-y-3">
+              <IndicatorsCard :indicators="d.indicators" />
+              <KeyLevelsCard :indicators="d.indicators" :distances="d.distances" />
+            </div>
           </div>
         </div>
 
-        <!-- Fundamentals (async) -->
-        <FundamentalsCard
-          v-if="fundamentalsLoading || fundamentalsReady"
-          :fundamentals="fundamentals"
-          :loading="fundamentalsLoading"
-        />
+        <!-- Score tab -->
+        <div v-else-if="activeTab === 'score'" class="space-y-3">
+          <ScoreBreakdown
+            v-if="scoreContribs.length"
+            :contribs="scoreContribs"
+            :max="scoreContribMax"
+            :score="d.analysis.score"
+          />
+          <ScoreHistory :data="backtest" :loading="backtestLoading" />
+        </div>
 
-        <!-- 3. Analysis narrative -->
-        <AnalysisNarrative :analysis="d.analysis" />
+        <!-- Analysis tab -->
+        <div v-else-if="activeTab === 'analysis'" class="space-y-3">
+          <AnalysisNarrative :analysis="d.analysis" />
+          <DiagnosticsCards
+            v-if="d.analysis.diagnostics?.length"
+            :diagnostics="d.analysis.diagnostics"
+          />
+        </div>
 
-        <!-- 4. Score breakdown -->
-        <ScoreBreakdown
-          v-if="scoreContribs.length"
-          :contribs="scoreContribs"
-          :max="scoreContribMax"
-          :score="d.analysis.score"
-        />
+        <!-- Backtest tab -->
+        <div v-else-if="activeTab === 'backtest'" class="space-y-3">
+          <BacktestPanel :data="backtest" :loading="backtestLoading" :error="backtestError" />
+          <StrategyBacktest :data="backtest" :loading="backtestLoading" />
+        </div>
 
-        <!-- 5. Strengths vs Watch-outs -->
-        <DiagnosticsCards
-          v-if="d.analysis.diagnostics?.length"
-          :diagnostics="d.analysis.diagnostics"
-        />
-
-        <!-- Backtest — score credibility check -->
-        <BacktestPanel :data="backtest" :loading="backtestLoading" :error="backtestError" />
-
-        <!-- Strategy backtest — score-timed exposure vs buy & hold (equity curve) -->
-        <StrategyBacktest :data="backtest" :loading="backtestLoading" />
-
-        <!-- News — last content block -->
-        <NewsList
-          v-if="newsLoading || newsReady"
-          :items="news?.items || []"
-          :loading="newsLoading"
-          :unavailable="newsReady && !news"
-        />
+        <!-- Context tab -->
+        <div v-else-if="activeTab === 'context'" class="space-y-3">
+          <FundamentalsCard
+            v-if="fundamentalsLoading || fundamentalsReady"
+            :fundamentals="fundamentals"
+            :loading="fundamentalsLoading"
+          />
+          <NewsList
+            v-if="newsLoading || newsReady"
+            :items="news?.items || []"
+            :loading="newsLoading"
+            :unavailable="newsReady && !news"
+          />
+        </div>
 
         <!-- Footer meta -->
         <div class="flex justify-between items-center text-xs text-zinc-700 px-1 pt-1">

@@ -76,6 +76,9 @@ const messages = {
       score: 'Score', forces: 'Strengths & risks', backtest: 'Backtest',
       scoreHist: 'Score history', strategy: 'Strategy',
     },
+    tabs: {
+      charts: 'Charts', score: 'Score', analysis: 'Analysis', backtest: 'Backtest', context: 'Context',
+    },
     portfolio: {
       title: 'Portfolio',
       subtitle: 'Track your holdings, live valuation and allocation',
@@ -211,7 +214,7 @@ const messages = {
     info: {
       backtest: {
         title: 'Score backtest',
-        text: 'We replay the exact scoring engine across up to ~10 years of history and measure the realized forward return (3M / 6M / 12M / 3Y / 5Y) after each score, grouped by band.',
+        text: 'We replay the exact scoring engine across up to ~10 years of history and measure the realized forward return (3M / 6M / 12M) after each score, grouped by band.',
         tip: 'If the engine is meaningful, higher score bands should show higher average forward returns than the baseline.',
       },
       btCorrelation: {
@@ -596,6 +599,9 @@ const messages = {
       score: 'Score', forces: 'Forces & risques', backtest: 'Backtest',
       scoreHist: 'Historique du score', strategy: 'Stratégie',
     },
+    tabs: {
+      charts: 'Graphiques', score: 'Score', analysis: 'Analyse', backtest: 'Backtest', context: 'Contexte',
+    },
     portfolio: {
       title: 'Portefeuille',
       subtitle: 'Suivez vos positions, leur valorisation et leur répartition',
@@ -731,7 +737,7 @@ const messages = {
     info: {
       backtest: {
         title: 'Backtest du score',
-        text: 'On rejoue exactement le moteur de scoring sur jusqu’à ~10 ans d’historique et on mesure le rendement forward réalisé (3M / 6M / 12M / 3A / 5A) après chaque score, groupé par palier.',
+        text: 'On rejoue exactement le moteur de scoring sur jusqu’à ~10 ans d’historique et on mesure le rendement forward réalisé (3M / 6M / 12M) après chaque score, groupé par palier.',
         tip: 'Si le moteur est pertinent, les paliers de score élevés doivent afficher un rendement forward moyen supérieur à la référence.',
       },
       btCorrelation: {

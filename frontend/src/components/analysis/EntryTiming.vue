@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from '../../composables/useI18n.js'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const props = defineProps({
   data:    { type: Object,  default: null },
@@ -13,8 +13,7 @@ const timing = computed(() => props.data?.timing ?? null)
 
 // Trading days → short horizon label (mirror of BacktestPanel).
 const horizonLabel = computed(() => {
-  const y = locale.value === 'fr' ? 'A' : 'Y'
-  const map = { 63: '3M', 126: '6M', 252: '12M', 756: `3${y}`, 1260: `5${y}` }
+  const map = { 63: '3M', 126: '6M', 252: '12M' }
   return map[timing.value?.horizon] ?? `${timing.value?.horizon ?? ''}d`
 })
 
