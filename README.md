@@ -91,6 +91,7 @@ The result is condensed into a **single opportunity score**, transparently broke
 - 🧮 **0–100 accumulation scoring** with a **signed contribution** per category (Strengths / Watchpoints bar chart).
 - 🗂️ **Batch analysis** (up to 50 tickers in parallel).
 - 📊 **Interactive charts**: price + SMA 200/50, volume, **Fibonacci levels**, **Bollinger bands** (togglable), RSI 14 and MACD histogram sub-charts, plus an annotated **price/RSI divergence** detector.
+- 🗂️ **Tabbed analysis view** — a pinned **decision core** (opportunity score + entry-timing) stays visible while the rest is split into tabs (**Charts / Score / Analysis / Backtest / Context**) for progressive disclosure; the active tab is persisted and each panel mounts on demand so charts always size correctly.
 - ↕️ **Dashboard sorting** — sort the watchlist by score (highest first by default), change, or name.
 - ⌨️ **Quick-search modal** — `Ctrl/⌘ K` (or `/`) opens a command-palette search (name / symbol / **ISIN**) from anywhere in the app, with full keyboard navigation (↑↓ / ↵ / esc) and a focus trap.
 - ♿ **Accessible, low-jank UI** — skeleton loaders that mirror the final layout (fast perceived load, no layout shift), inline “unavailable” states instead of silently hiding failed sections, and full **`prefers-reduced-motion`** support.
@@ -99,7 +100,8 @@ The result is condensed into a **single opportunity score**, transparently broke
 - 🧪 **Score backtest with a plain-language verdict** — replays the exact scoring engine over **up to ~10 years** of history and shows realized forward returns (**3M / 6M / 12M**) grouped by score band, each measured **against a buy-anytime baseline**. A **verdict banner** states, per ticker and horizon, whether buying on high scores actually **beat buying at a random time** (the real signal — *being positive isn't enough, it must beat the baseline*), alongside a **color-coded score-vs-price timeline** and a score/return correlation.
 - 📈 **Score history distribution** — a histogram of the ticker's own ~10-year score range showing where **today's score sits versus its past** (current bin highlighted, percentile, min / median / max).
 - 🎛️ **Strategy backtest** — a weekly simulation that stays invested only while the score is above an **adjustable threshold** (otherwise in cash) versus staying fully invested, with an **equity curve**, CAGR, **max drawdown**, exposure and switch count, plus a verdict on whether score-timing beat buy &amp; hold on that stock.
-- 💼 **Portfolio tracking** — add positions (quantity, average cost, note), get **live valuation, P&amp;L, and allocation weights**, jump to full analysis from any holding; persisted server-side in SQLite.
+- 💼 **Portfolio tracking** — add positions with an **autocomplete ticker search** (name / symbol / ISIN, same engine as the rest of the app), record quantity, average cost and a note, get **live valuation, P&amp;L, and allocation weights**, and jump to full analysis from any holding; persisted server-side in SQLite.
+- 🧹 **Data reset (maintenance)** — a confirmation modal with **per-type toggles** (caches, backtest scores, watchlist, portfolio, ticker names) to selectively clear in-memory caches and database rows, with clearly flagged irreversible user-data options.
 - ⭐ **Persisted watchlist** (localStorage front-side + SQLite server-side) + search history.
 - 🌗 **Light / dark theme** with dynamic chart re-coloring.
 - 🌍 **Full English / French localization** — both the UI and the backend-generated analysis text, with the choice persisted in localStorage.
@@ -148,9 +150,10 @@ flowchart LR
     VUE -- \"GET /ticker/… /chart /fundamentals /news\" --> API
     VUE -- \"GET/PUT/POST/DELETE /favorites\" --> API
     VUE -- \"GET/PUT/DELETE /portfolio\" --> API
+    VUE -- \"POST /reset\" --> API
     API --> CACHE
     API --> I18N
-    API -- "favorites · ticker names" --> DB
+    API -- "favorites · portfolio · ticker names" --> DB
     DB -. "persisted" .-> VOL
     CACHE -- "miss" --> ENGINE
     ENGINE -- "download OHLCV + dividends" --> YF
@@ -162,7 +165,7 @@ Two frontend serving modes are provided:
 
 - **Production (single image)** — the multi-stage `Dockerfile` builds the SPA (`node:24`) then copies it into `/app/static`, served directly by FastAPI (`StaticFiles`, mounted last so it does not shadow the API routes).
 - **Nginx alternative** — `frontend/Dockerfile` + `nginx.conf` serve the SPA behind Nginx, which *proxies* the `/ticker|/health|/cache|/docs` routes to the API container.
-- **Persistence** — a lightweight **SQLite** database (`backend/db.py`) stores the **favorites (watchlist)** and a memoized **`TICKER = Name`** cache, kept on the `./data` volume (`DB_PATH`, default `/app/data/hodler.db`).
+- **Persistence** — a lightweight **SQLite** database (`backend/db.py`) stores the **favorites (watchlist)**, the **portfolio positions** and a memoized **`TICKER = Name`** cache, kept on the `./data` volume (`DB_PATH`, default `/app/data/hodler.db`).
 
 ---
 
@@ -379,6 +382,7 @@ Default base URL: `http://localhost:8000` — interactive documentation at **`/d
 | `GET` | `/portfolio` | Portfolio with live valuation, P&L and allocation weights |
 | `PUT` | `/portfolio/{code}` | Add or update a position (`{ "quantity": …, "avg_cost": …, "note": … }`) |
 | `DELETE` | `/portfolio/{code}` | Remove a position |
+| `POST` | `/reset` | Selective maintenance reset (`{ "caches": …, "backtests": …, "watchlist": …, "portfolio": …, "tickers": … }`, each `bool`) — clears the chosen caches and/or database rows |
 
 <details>
 <summary><b>Example response for <code>GET /ticker/MC.PA</code> (excerpt)</b></summary>
@@ -427,17 +431,19 @@ Default base URL: `http://localhost:8000` — interactive documentation at **`/d
 Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 
 **Components** (`src/components/`)
-- `DashboardView` / `DashboardCard` — watchlist dashboard view (with score/change/name sorting)
+- `DashboardView` / `DashboardCard` — watchlist dashboard view (with score/change/name sorting), shown by default on load
 - `PortfolioView` — portfolio holdings table: add/edit positions, live valuation, P&L and allocation bars
 - `TickerSearch` — search bar + history
+- `TickerAutocomplete` — reusable ticker autocomplete field (debounced `/search`, keyboard-navigable, type badges) used by the portfolio add form
 - `SearchModal` — `Ctrl/⌘ K` (or `/`) command-palette quick search (name / symbol / ISIN), keyboard-navigable with a focus trap
+- `ResetModal` — maintenance reset dialog with per-type toggles (caches / backtests / watchlist / portfolio / ticker names) and a focus trap
 - `TickerCharts` — Chart.js charts (price/SMA/volume + Fibonacci + Bollinger, RSI, MACD, divergences), zoom/pan, Fibonacci & Bollinger toggles
 - `BacktestPanel` — historical score backtest: verdict banner, forward-return-by-band bar chart vs the buy-anytime baseline, and a color-coded score/price timeline
 - `analysis/ScoreHistory` — histogram of the ticker's own ~10-year score distribution (current score highlighted, percentile & quartiles)
 - `analysis/StrategyBacktest` — score-timed exposure vs buy &amp; hold equity curve with an adjustable threshold (CAGR, max drawdown, exposure)
 - `NewsList` — recent news feed (publisher, date, thumbnail) for the analyzed ticker, with skeleton loading and inline empty/unavailable states
 - `InfoTip` — structured educational tooltips (title, formula, colored scale, tip)
-- `AppHeader` — header + quick-search shortcut, theme and language switchers
+- `AppHeader` — header (nav tabs, recent tickers, quick-search shortcut, theme & language switchers, data-reset button)
 
 **Composables** (`src/composables/`)
 - `useTickerAnalysis` — data layer: active ticker + TanStack queries (analysis, chart, fundamentals, news, backtest) and the search action
@@ -447,7 +453,7 @@ Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 - `useTheme` — persistent light/dark theme
 - `useWatchlist` — persisted watchlist
 
-**Persistence** (localStorage): `smm_history`, `smm_watchlist`, `smm_theme`, `smm_locale`, `smm_dash_sort`.
+**Persistence** (localStorage): `smm_history`, `smm_watchlist`, `smm_theme`, `smm_locale`, `smm_dash_sort`, `smm_analysis_tab`.
 
 **Data fetching**: [TanStack Vue Query](https://tanstack.com/query) manages server state (caching, retries, background refetch) with a 60 s stale time; [VueUse](https://vueuse.org/) provides reactive browser utilities.
 
@@ -538,13 +544,13 @@ cd frontend && pnpm run build   # generates frontend/dist
 | `backend/locales/*.json` | Backend analysis-text translations (add a file to support a new language) |
 | `PYTHONUNBUFFERED=1` | Unbuffered logs |
 
-The SQLite database stores the **favorites (watchlist)** and a **memoized `TICKER=Name` cache**, persisted via the `./data` volume in Compose.
+The SQLite database stores the **favorites (watchlist)**, the **portfolio positions** and a **memoized `TICKER=Name` cache**, persisted via the `./data` volume in Compose.
 
 ---
 
 ## 🗄️ Caching strategy
 
-Five thread-safe in-memory TTL caches (`TTLCache`, in [`backend/cache.py`](backend/cache.py)) limit calls to Yahoo Finance:
+Six thread-safe in-memory TTL caches (`TTLCache`, in [`backend/cache.py`](backend/cache.py)) limit calls to Yahoo Finance:
 
 | Cache | Content | TTL |
 |-------|---------|:---:|
@@ -555,7 +561,7 @@ Five thread-safe in-memory TTL caches (`TTLCache`, in [`backend/cache.py`](backe
 | `backtest_cache` | Historical score backtests | **6 h** |
 | `raw_cache` | Raw OHLCV DataFrames | **15 min** |
 
-The `refresh=true` parameter (or the UI **Refresh** button) forces recomputation, ignoring these caches. At startup, `_prewarm()` loads the configured tickers in the background (max 4 concurrent downloads).
+The `refresh=true` parameter (or the UI **Refresh** button) forces recomputation, ignoring these caches. At startup, `_prewarm()` loads the configured tickers in the background (max 4 concurrent downloads). The **maintenance reset** (`POST /reset`) can clear every cache at once (`clear_all_caches()`) and/or selected database rows.
 
 ---
 
