@@ -195,9 +195,14 @@ defineExpose({ reload: loadDashboard })
         class="bg-zinc-900 border border-zinc-800 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center gap-2 h-52 text-center">
         <p class="font-mono font-bold text-zinc-400 text-sm">{{ ticker }}</p>
         <p class="text-xs text-zinc-600">{{ t('dash.notLoaded') }}</p>
-        <button @click="loadDashboard()" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors mt-1">
-          {{ t('dash.load') }}
-        </button>
+        <div class="flex items-center gap-3 mt-1">
+          <button @click="loadDashboard()" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+            {{ t('dash.load') }}
+          </button>
+          <button @click="removeCard(ticker)" class="text-xs text-zinc-600 hover:text-red-400 transition-colors">
+            {{ t('dash.remove') }}
+          </button>
+        </div>
       </div>
     </div>
 

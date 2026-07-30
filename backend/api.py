@@ -4,6 +4,8 @@ GET /ticker/{ticker_code}  →  full technical analysis as JSON
 GET /docs                  →  interactive Swagger UI
 """
 import asyncio
+import json
+import math
 import os
 import re
 import threading
@@ -16,6 +18,7 @@ import pandas as pd
 import yfinance as yf
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 
@@ -154,11 +157,35 @@ async def lifespan(_app: FastAPI):
     yield
 
 
+def _json_safe(obj):
+    """Recursively replace NaN/Inf floats with None so the payload is valid JSON."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
+
+
+class SafeJSONResponse(JSONResponse):
+    """JSONResponse that renders NaN/Inf as null instead of raising."""
+
+    def render(self, content) -> bytes:
+        return json.dumps(
+            _json_safe(content),
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+
 app = FastAPI(
     title="Hodler Scanner API",
     description="Buy & Hold technical analysis — SMA, RSI, MACD, Bollinger Bands, scoring",
     version="1.0.0",
     lifespan=lifespan,
+    default_response_class=SafeJSONResponse,
 )
 
 app.add_middleware(
@@ -207,17 +234,23 @@ def _download_batch(tickers: list[str], period: str = "500d", refresh: bool = Fa
         return out
 
     if len(missing) == 1:
-        frames = {missing[0]: _download_raw(missing[0], period, refresh=True)}
+        try:
+            frames = {missing[0]: _download_raw(missing[0], period, refresh=True)}
+        except Exception:
+            frames = {missing[0]: pd.DataFrame()}
     else:
-        data = yf.download(
-            missing, period=period, interval="1d",
-            progress=False, auto_adjust=False, actions=True,
-            group_by="ticker", threads=True,
-        )
+        try:
+            data = yf.download(
+                missing, period=period, interval="1d",
+                progress=False, auto_adjust=False, actions=True,
+                group_by="ticker", threads=True,
+            )
+        except Exception:
+            data = None
         frames = {}
         for t in missing:
             try:
-                frames[t] = data[t]
+                frames[t] = data[t] if data is not None else pd.DataFrame()
             except (KeyError, TypeError):
                 frames[t] = pd.DataFrame()
 
@@ -246,6 +279,9 @@ def _analyse_ticker(ticker_code: str, lang: str = "en", data=None) -> dict:
     divs   = _col("Dividends") if "Dividends" in data else pd.Series(dtype=float)
 
     days_avail   = int(close.count())
+    if days_avail == 0:
+        # Delisted / unknown symbol: yfinance returns an all-NaN frame.
+        raise HTTPException(status_code=404, detail=f"Aucune donnée pour {ticker_code}")
     data_partiel = days_avail < 200
 
     # ── Vectorized indicators ─────────────────────────────────────
