@@ -1,4 +1,5 @@
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 
 // Available themes — remap the "zinc" scale via CSS variables (see style.css)
 export const THEMES = [
@@ -8,18 +9,15 @@ export const THEMES = [
 ]
 
 const _ids = THEMES.map(t => t.id)
-const stored = localStorage.getItem('smm_theme')
-const theme = ref(_ids.includes(stored) ? stored : 'dark')
+const theme = useLocalStorage('smm_theme', 'dark')
+if (!_ids.includes(theme.value)) theme.value = 'dark'
 
 function apply(t) {
   document.documentElement.setAttribute('data-theme', t)
 }
 apply(theme.value)
 
-watch(theme, t => {
-  apply(t)
-  localStorage.setItem('smm_theme', t)
-})
+watch(theme, apply)
 
 export function useTheme() {
   function setTheme(t) {

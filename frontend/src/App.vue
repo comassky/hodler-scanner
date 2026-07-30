@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
+import { useQuery } from '@tanstack/vue-query'
 import AppHeader    from './components/AppHeader.vue'
 import TickerSearch from './components/TickerSearch.vue'
 import TickerCharts from './components/TickerCharts.vue'
@@ -26,18 +28,63 @@ const {
 } = useFormatters()
 
 // ── Analysis state ─────────────────────────────────────────────────
-const input   = ref('')
-const loading = ref(false)
-const error   = ref(null)
-const result  = ref(null)
-const history = ref(JSON.parse(localStorage.getItem('smm_history') || '[]'))
-
-// ── Chart state ───────────────────────────────────────────────────
-const chartData    = ref(null)
-const chartLoading = ref(false)
+const input        = ref('')
 const period       = ref('1y')
-const fundamentals = ref(null)
-const news = ref(null)
+const activeTicker = ref('')      // currently analyzed ticker — drives the queries
+const forceReload  = ref(false)   // one-shot cache-bypass flag for a forced refresh
+const history      = useLocalStorage('smm_history', [])
+
+const enc = s => encodeURIComponent(s)
+function withRefresh(url) {
+  if (!forceReload.value) return url
+  return url + (url.includes('?') ? '&' : '?') + 'refresh=true'
+}
+const queryEnabled = computed(() => !!activeTicker.value)
+
+// Main analysis (localized) — re-fetched automatically on ticker/locale change.
+const tickerQuery = useQuery({
+  queryKey: ['ticker', activeTicker, locale],
+  enabled: queryEnabled,
+  queryFn: async () => {
+    const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}?lang=${locale.value}`))
+    if (!r.ok) throw new Error(((await r.json().catch(() => ({}))).detail) ?? `HTTP ${r.status}`)
+    return r.json()
+  },
+})
+// Chart — re-fetched automatically on ticker/period change (no page spinner).
+const chartQuery = useQuery({
+  queryKey: ['chart', activeTicker, period],
+  enabled: queryEnabled,
+  queryFn: async () => {
+    const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}/chart?period=${period.value}`))
+    return r.ok ? r.json() : null
+  },
+})
+const fundamentalsQuery = useQuery({
+  queryKey: ['fundamentals', activeTicker],
+  enabled: queryEnabled,
+  queryFn: async () => {
+    const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}/fundamentals`))
+    return r.ok ? r.json() : null
+  },
+})
+const newsQuery = useQuery({
+  queryKey: ['news', activeTicker],
+  enabled: queryEnabled,
+  queryFn: async () => {
+    const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}/news`))
+    return r.ok ? r.json() : null
+  },
+})
+
+// Map query state onto the names the template already uses.
+const result       = computed(() => tickerQuery.data.value ?? null)
+const loading      = computed(() => queryEnabled.value && tickerQuery.isLoading.value)
+const error        = computed(() => tickerQuery.error.value?.message ?? null)
+const chartData    = computed(() => chartQuery.data.value ?? null)
+const chartLoading = computed(() => queryEnabled.value && chartQuery.isLoading.value)
+const fundamentals = computed(() => fundamentalsQuery.data.value ?? null)
+const news         = computed(() => newsQuery.data.value ?? null)
 
 function timeAgo(iso) {
   if (!iso) return ''
@@ -136,71 +183,30 @@ const vigilances = computed(() => (d.value?.analysis?.diagnostics ?? []).filter(
 const neutres    = computed(() => (d.value?.analysis?.diagnostics ?? []).filter(x => x.impact === 0))
 
 // ── Search ──────────────────────────────────────────────
-let _searchSeq = 0
 async function search(ticker, force = false) {
   const code = (ticker || input.value).trim().toUpperCase()
   if (!code) return
-  const seq = ++_searchSeq          // anti-race token
   input.value = code
-  loading.value = true
-  chartLoading.value = true
-  error.value = null
-  result.value = null
-  chartData.value = null
-  fundamentals.value = null
-  news.value = null
+  history.value = [code, ...history.value.filter(x => x !== code)].slice(0, 8)
 
-  const rq = force ? '?refresh=true' : ''
-  const rqAmp = force ? '&refresh=true' : ''
-  try {
-    const [ar, cr] = await Promise.all([
-      fetch(`/ticker/${encodeURIComponent(code)}?lang=${locale.value}${rqAmp}`),
-      fetch(`/ticker/${encodeURIComponent(code)}/chart?period=${period.value}${rqAmp}`),
-    ])
-    if (seq !== _searchSeq) return   // stale response → ignore
-    if (!ar.ok) throw new Error(((await ar.json().catch(() => ({}))).detail) ?? `HTTP ${ar.status}`)
-    result.value = await ar.json()
-    if (cr.ok) chartData.value = await cr.json()
-    // Fundamentals in the background (non-blocking, with anti-race guard)
-    fetch(`/ticker/${encodeURIComponent(code)}/fundamentals${rq}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(f => { if (seq === _searchSeq) fundamentals.value = f })
-      .catch(() => {})
-    // News in the background (non-blocking)
-    fetch(`/ticker/${encodeURIComponent(code)}/news${rq}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(n => { if (seq === _searchSeq) news.value = n })
-      .catch(() => {})
-    const h = history.value.filter(x => x !== code)
-    history.value = [code, ...h].slice(0, 8)
-    localStorage.setItem('smm_history', JSON.stringify(history.value))
-  } catch (e) {
-    if (seq === _searchSeq) error.value = e.message
-  } finally {
-    if (seq === _searchSeq) {
-      loading.value = false
-      chartLoading.value = false
+  const sameTicker = activeTicker.value === code
+  activeTicker.value = code
+  // A new ticker changes the query keys → queries refetch on their own.
+  // For the same ticker (re-run / forced refresh) we trigger explicitly.
+  if (force || sameTicker) {
+    forceReload.value = force
+    try {
+      await Promise.allSettled([
+        tickerQuery.refetch(),
+        chartQuery.refetch(),
+        fundamentalsQuery.refetch(),
+        newsQuery.refetch(),
+      ])
+    } finally {
+      forceReload.value = false
     }
   }
 }
-
-async function reloadChart() {
-  if (!result.value) return
-  const code = result.value.ticker
-  const seq  = ++_searchSeq
-  // No spinner or reset: the chart stays visible and the data
-  // is replaced in place as soon as it arrives (smooth period change).
-  try {
-    const r = await fetch(`/ticker/${encodeURIComponent(code)}/chart?period=${period.value}`)
-    if (seq !== _searchSeq) return
-    if (r.ok) chartData.value = await r.json()
-  } catch {}
-}
-
-watch(period, () => { if (result.value) reloadChart() })
-
-// Reload the current analysis on a language change (backend text)
-watch(locale, () => { if (result.value) search(result.value.ticker) })
 
 // ── Dashboard → Analysis ──────────────────────────────────────────────
 function goToAnalyse(ticker) {

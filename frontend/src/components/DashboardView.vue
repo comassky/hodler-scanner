@@ -1,5 +1,7 @@
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import DashboardCard from './DashboardCard.vue'
 import { useWatchlist } from '../composables/useWatchlist.js'
 import { useI18n } from '../composables/useI18n.js'
@@ -8,14 +10,38 @@ const emit = defineEmits(['analyse'])
 
 const { watchlist, add, remove } = useWatchlist()
 const { t, locale } = useI18n()
+const queryClient = useQueryClient()
 const wlInput     = ref('')
-const dashData    = ref([])
-const dashLoading = ref(false)
-const dashError   = ref(null)
 
 const SORTS = ['scoreDesc', 'scoreAsc', 'changeDesc', 'nameAsc']
-const sortBy = ref(localStorage.getItem('smm_dash_sort') || 'scoreDesc')
-watch(sortBy, v => localStorage.setItem('smm_dash_sort', v))
+const sortBy = useLocalStorage('smm_dash_sort', 'scoreDesc')
+
+// Batch dashboard data — cached & auto-refreshed every 5 min (foreground only).
+// Keyed by locale so a language switch re-fetches the translated analysis text.
+// Not keyed by the watchlist: adding a ticker shows a stub until it is loaded,
+// matching the original behaviour (explicit "Load" / "Refresh all").
+const dashKey = computed(() => ['dashboard', locale.value])
+const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
+  queryKey: dashKey,
+  enabled: computed(() => watchlist.value.length > 0),
+  refetchInterval: 5 * 60 * 1000,
+  refetchIntervalInBackground: false,
+  queryFn: async () => {
+    const res = await fetch('/tickers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tickers: watchlist.value, lang: locale.value }),
+    })
+    if (!res.ok) throw new Error(t('dash.serverError'))
+    return (await res.json()).results
+  },
+})
+
+const dashData    = computed(() => data.value ?? [])
+const dashLoading = computed(() => isLoading.value)   // skeleton on first load only
+const refreshing  = computed(() => isFetching.value)  // button feedback on any fetch
+const dashError   = computed(() => error.value?.message ?? null)
+const lastRefresh = computed(() => (dataUpdatedAt.value ? new Date(dataUpdatedAt.value) : null))
 
 // Sorted cards: by default descending score; errors always at the end
 const sortedData = computed(() => {
@@ -36,29 +62,12 @@ const sortedData = computed(() => {
 const loadedTickers   = computed(() => new Set(dashData.value.map(d => d.ticker)))
 const unloadedTickers = computed(() => watchlist.value.filter(t => !loadedTickers.value.has(t)))
 
-async function loadDashboard() {
-  if (!watchlist.value.length) return
-  dashLoading.value = true
-  dashError.value   = null
-  try {
-    const res = await fetch('/tickers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tickers: watchlist.value, lang: locale.value }),
-    })
-    if (!res.ok) throw new Error(t('dash.serverError'))
-    dashData.value = (await res.json()).results
-    lastRefresh.value = new Date()
-  } catch (e) {
-    dashError.value = e.message
-  } finally {
-    dashLoading.value = false
-  }
-}
+function loadDashboard() { refetch() }
 
 function removeCard(ticker) {
   remove(ticker)
-  dashData.value = dashData.value.filter(r => r.ticker !== ticker)
+  // Drop the card from the cache without a full refetch.
+  queryClient.setQueryData(dashKey.value, old => (old ?? []).filter(r => r.ticker !== ticker))
 }
 
 function addWlInput() {
@@ -67,15 +76,6 @@ function addWlInput() {
   add(code)
   wlInput.value = ''
 }
-
-// Load automatically on first mount
-const lastRefresh = ref(null)
-loadDashboard()
-const _autoRefresh = setInterval(() => { if (!document.hidden) loadDashboard() }, 5 * 60 * 1000)
-onUnmounted(() => clearInterval(_autoRefresh))
-
-// Reload on language change (to re-translate the backend analysis text)
-watch(locale, () => { if (watchlist.value.length) loadDashboard() })
 
 // Expose reload for parent (header button etc.)
 defineExpose({ reload: loadDashboard })
@@ -105,9 +105,9 @@ defineExpose({ reload: loadDashboard })
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
             </svg>
           </label>
-          <button @click="loadDashboard()" :disabled="dashLoading"
+          <button @click="loadDashboard()" :disabled="refreshing"
             class="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-300 px-4 py-2 rounded-xl text-sm transition-colors">
-            <svg class="w-4 h-4" :class="dashLoading ? 'animate-spin' : ''"
+            <svg class="w-4 h-4" :class="refreshing ? 'animate-spin' : ''"
                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round"
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>

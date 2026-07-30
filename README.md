@@ -49,21 +49,22 @@ The project couples a **quantitative analysis engine in Python** (vectorized `pa
 
 1. [Investment philosophy](#-investment-philosophy)
 2. [Features](#-features)
-3. [Architecture](#-architecture)
-4. [Tech stack](#-tech-stack)
-5. [The financial analysis engine](#-the-financial-analysis-engine)
+3. [Screenshots](#-screenshots)
+4. [Architecture](#-architecture)
+5. [Tech stack](#-tech-stack)
+6. [The financial analysis engine](#-the-financial-analysis-engine)
    - [Technical indicators](#technical-indicators)
    - [The scoring system](#the-scoring-system-0100)
    - [Statuses & recommendations](#statuses--recommendations)
    - [Price targets & estimated return](#price-targets--estimated-return)
-6. [Internationalization (i18n)](#-internationalization-i18n)
-7. [REST API](#-rest-api)
-8. [Frontend](#-frontend)
-9. [Installation & deployment](#-installation--deployment)
-10. [Configuration](#-configuration)
-11. [Caching strategy](#-caching-strategy)
-12. [Command-line usage](#-command-line-usage-cli)
-13. [Disclaimer](#-disclaimer)
+7. [Internationalization (i18n)](#-internationalization-i18n)
+8. [REST API](#-rest-api)
+9. [Frontend](#-frontend)
+10. [Installation & deployment](#-installation--deployment)
+11. [Configuration](#-configuration)
+12. [Caching strategy](#-caching-strategy)
+13. [Command-line usage](#-command-line-usage-cli)
+14. [Disclaimer](#-disclaimer)
 
 ---
 
@@ -97,6 +98,22 @@ The result is condensed into a **single opportunity score**, transparently broke
 - 💡 **Structured educational tooltips** (plain-language definition, formula, interpretation scale, tip) on every indicator.
 - ⚡ **Cache pre-warming** at startup on a configurable ticker list.
 - 📚 **Auto-generated Swagger UI** (`/docs`).
+
+---
+
+## 🖼️ Screenshots
+
+<div align="center">
+
+| Dashboard | Ticker analysis |
+|:---------:|:---------------:|
+| ![Dashboard](screenshots/dashboard.png) | ![Ticker analysis](screenshots/analysis.png) |
+
+| Score breakdown | Interactive charts |
+|:---------------:|:------------------:|
+| ![Score breakdown](screenshots/analysis2.png) | ![Interactive charts](screenshots/charts.png) |
+
+</div>
 
 ---
 
