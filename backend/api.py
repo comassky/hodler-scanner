@@ -156,7 +156,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(
     title="Hodler Scanner API",
-    description="Analyse technique Buy & Hold — SMA, RSI, MACD, Bollinger Bands, scoring",
+    description="Buy & Hold technical analysis — SMA, RSI, MACD, Bollinger Bands, scoring",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -418,7 +418,7 @@ def health():
     return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 
-@app.get("/search", summary="Recherche de tickers par nom ou symbole", tags=["utils"])
+@app.get("/search", summary="Search tickers by name or symbol", tags=["utils"])
 def search_tickers(q: str):
     """Search via Yahoo Finance Search (min. 2 characters)."""
     if len(q.strip()) < 2:
@@ -439,7 +439,7 @@ def search_tickers(q: str):
         return []
 
 
-@app.get("/ticker/{ticker_code}", summary="Analyse technique complète d'un ticker")
+@app.get("/ticker/{ticker_code}", summary="Full technical analysis of a ticker")
 async def get_ticker(ticker_code: str, refresh: bool = False, lang: str = "en"):
     """
     Return all technical indicators + B&H score for a ticker.
@@ -469,7 +469,7 @@ async def get_ticker(ticker_code: str, refresh: bool = False, lang: str = "en"):
     return {**result, "cached": False}
 
 
-@app.get("/ticker/{ticker_code}/chart", summary="Données historiques pour graphiques", tags=["analyse"])
+@app.get("/ticker/{ticker_code}/chart", summary="Historical data for charts", tags=["analyse"])
 def ticker_chart(ticker_code: str, period: str = "1y", refresh: bool = False):
     """Return price, SMA 200/50, RSI 14 and MACD histogram for the charts."""
     if period not in {"3mo", "6mo", "1y", "2y", "max"}:
@@ -525,7 +525,7 @@ def ticker_chart(ticker_code: str, period: str = "1y", refresh: bool = False):
     return result
 
 
-@app.get("/ticker/{ticker_code}/fundamentals", summary="Données fondamentales", tags=["analyse"])
+@app.get("/ticker/{ticker_code}/fundamentals", summary="Fundamental data", tags=["analyse"])
 def ticker_fundamentals(ticker_code: str, refresh: bool = False):
     """P/E, market cap, sector, country via yfinance.info."""
     code = ticker_code.upper()
@@ -591,7 +591,7 @@ def _parse_news_item(it: dict) -> dict:
     }
 
 
-@app.get("/ticker/{ticker_code}/news", summary="Actualités récentes", tags=["analyse"])
+@app.get("/ticker/{ticker_code}/news", summary="Recent news", tags=["analyse"])
 def ticker_news(ticker_code: str, refresh: bool = False):
     """Latest news for the stock via yfinance (Yahoo Finance)."""
     code = ticker_code.upper()
@@ -618,19 +618,19 @@ def ticker_news(ticker_code: str, refresh: bool = False):
 
 
 # ── Cache management ───────────────────────────────────────────────
-@app.get("/cache", summary="État du cache", tags=["cache"])
+@app.get("/cache", summary="Cache state", tags=["cache"])
 def cache_info():
     """List cached entries with their age and remaining TTL."""
     return _cache.info()
 
 
-@app.delete("/cache", summary="Vider tout le cache", tags=["cache"])
+@app.delete("/cache", summary="Clear the entire cache", tags=["cache"])
 def cache_clear():
     n = _cache.clear()
     return {"cleared": n}
 
 
-@app.delete("/cache/{ticker_code}", summary="Invalider un ticker", tags=["cache"])
+@app.delete("/cache/{ticker_code}", summary="Invalidate a ticker", tags=["cache"])
 def cache_invalidate(ticker_code: str):
     found = _cache.invalidate(ticker_code.upper())
     if not found:
@@ -648,25 +648,25 @@ class FavoritesImport(BaseModel):
         return [t.strip().upper() for t in v if t and t.strip()]
 
 
-@app.get("/favorites", summary="Liste des favoris", tags=["favorites"])
+@app.get("/favorites", summary="List favorites", tags=["favorites"])
 def favorites_list():
     """Return the watchlist persisted server-side."""
     return {"favorites": db.get_favorites()}
 
 
-@app.put("/favorites", summary="Remplace toute la liste des favoris", tags=["favorites"])
+@app.put("/favorites", summary="Replace the entire favorites list", tags=["favorites"])
 def favorites_set(body: FavoritesImport):
     """Fully replace the watchlist (used for import/migration)."""
     return {"favorites": db.set_favorites(body.tickers)}
 
 
-@app.post("/favorites/{ticker_code}", summary="Ajoute un favori", tags=["favorites"])
+@app.post("/favorites/{ticker_code}", summary="Add a favorite", tags=["favorites"])
 def favorites_add(ticker_code: str):
     added = db.add_favorite(ticker_code)
     return {"favorites": db.get_favorites(), "added": added}
 
 
-@app.delete("/favorites/{ticker_code}", summary="Retire un favori", tags=["favorites"])
+@app.delete("/favorites/{ticker_code}", summary="Remove a favorite", tags=["favorites"])
 def favorites_remove(ticker_code: str):
     removed = db.remove_favorite(ticker_code)
     if not removed:
@@ -690,7 +690,7 @@ class TickerListRequest(BaseModel):
         return [t.strip().upper() for t in v]
 
 
-@app.post("/tickers", summary="Analyse d'une liste de tickers")
+@app.post("/tickers", summary="Analyze a list of tickers")
 async def post_tickers(body: TickerListRequest):
     """
     Analyze several tickers in parallel.
