@@ -49,6 +49,7 @@ const messages = {
       context: 'Context', noForce: 'No notable strength detected.',
       noRisk: 'No major risk detected.', fundamentals: 'Fundamentals',
       news: 'News',
+      footerSource: 'View source on GitHub',
     },
     scoreLabel: { strong: 'STRONG BUY', accumulate: 'ACCUMULATE', watch: 'WATCH', avoid: 'AVOID' },
     sections: {
@@ -368,6 +369,7 @@ const messages = {
       context: 'Contexte', noForce: 'Aucune force marquante détectée.',
       noRisk: 'Aucun risque majeur détecté.', fundamentals: 'Fondamentaux',
       news: 'Actualités',
+      footerSource: 'Voir le code sur GitHub',
     },
     scoreLabel: { strong: 'ACHAT FORT', accumulate: 'ACCUMULATION', watch: 'SURVEILLANCE', avoid: 'À ÉVITER' },
     sections: {
