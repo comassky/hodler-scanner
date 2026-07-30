@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { usePortfolio } from '../composables/usePortfolio.js'
 import { useFormatters } from '../composables/useFormatters.js'
 import { useI18n } from '../composables/useI18n.js'
+import TickerAutocomplete from './TickerAutocomplete.vue'
 
 const emit = defineEmits(['analyse'])
 
@@ -96,9 +97,8 @@ const money = (v) => (v == null ? '—' : Number(v).toLocaleString(locale.value,
       class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-6 grid grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1.6fr_auto] gap-3 items-end">
       <div>
         <label class="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">{{ t('portfolio.ticker') }}</label>
-        <input v-model="form.ticker" :disabled="editing" :placeholder="t('portfolio.tickerPlaceholder')"
-          autocomplete="off" spellcheck="false"
-          class="w-full bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-2 text-sm font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500 disabled:opacity-60" />
+        <TickerAutocomplete v-model="form.ticker" :disabled="editing"
+          :placeholder="t('portfolio.tickerPlaceholder')" />
       </div>
       <div>
         <label class="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">{{ t('portfolio.quantity') }}</label>

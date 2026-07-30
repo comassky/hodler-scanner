@@ -71,12 +71,14 @@ const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl K'))
 
       <!-- Recent tickers (analyse view only) -->
       <div v-if="view === 'analyse' && history.length"
-           class="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 scroll-fade-x">
+           class="flex items-center gap-1.5 flex-1 min-w-0">
         <span class="text-zinc-600 text-xs shrink-0">{{ t('header.recent') }}</span>
-        <button v-for="h in history" :key="h" @click="$emit('search', h)"
-          class="text-xs font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-md transition-colors shrink-0">
-          {{ h }}
-        </button>
+        <div class="flex items-center gap-1.5 overflow-x-auto min-w-0 scroll-fade-x">
+          <button v-for="h in history" :key="h" @click="$emit('search', h)"
+            class="text-xs font-mono bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded-md transition-colors shrink-0">
+            {{ h }}
+          </button>
+        </div>
       </div>
 
       <!-- Quick-search shortcut -->
