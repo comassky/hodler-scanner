@@ -1,0 +1,35 @@
+export function useFormatters() {
+  function fmt(v, dec = 2) {
+    if (v === null || v === undefined) return '—'
+    return typeof v === 'number' ? v.toFixed(dec) : String(v)
+  }
+
+  function fmtPct(v, showPlus = true) {
+    if (v === null || v === undefined) return '—'
+    const s = v.toFixed(2) + '%'
+    return showPlus && v > 0 ? '+' + s : s
+  }
+
+  const varColor       = v => v >= 0 ? 'text-emerald-400' : 'text-red-400'
+  const rsiClass       = v => v <= 35 ? 'text-emerald-400' : v >= 70 ? 'text-red-400' : 'text-zinc-300'
+  const rsiBarClass    = v => v <= 35 ? 'bg-emerald-500'   : v >= 70 ? 'bg-red-500'   : 'bg-indigo-400'
+  const distClass      = v => v == null ? 'text-zinc-500' : v >= 2 ? 'text-emerald-400' : v >= -3 ? 'text-amber-400' : 'text-red-400'
+  const macdClass      = v => v >= 0 ? 'text-emerald-400' : 'text-red-400'
+  const scoreCompClass = v => v > 0 ? 'text-emerald-400' : v < 0 ? 'text-red-400' : 'text-zinc-500'
+
+  function scoreColorFor(s) {
+    if (s >= 80) return { text: 'text-emerald-400', bg: 'bg-emerald-500/15 ring-1 ring-emerald-500/30' }
+    if (s >= 60) return { text: 'text-sky-400',     bg: 'bg-sky-500/15 ring-1 ring-sky-500/30' }
+    return             { text: 'text-amber-400',   bg: 'bg-amber-500/15 ring-1 ring-amber-500/30' }
+  }
+
+  const tendanceBadgeClass = t => t?.startsWith('↑')
+    ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30'
+    : 'bg-red-500/10 text-red-400 ring-1 ring-red-500/30'
+
+  return {
+    fmt, fmtPct,
+    varColor, rsiClass, rsiBarClass, distClass, macdClass,
+    scoreCompClass, scoreColorFor, tendanceBadgeClass,
+  }
+}
