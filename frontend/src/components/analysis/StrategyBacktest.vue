@@ -1,25 +1,49 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import Chart from 'chart.js/auto'
+import { Chart } from '../../lib/chart'
 import InfoTip from '../InfoTip.vue'
-import { useTheme } from '../../composables/useTheme.js'
-import { useI18n } from '../../composables/useI18n.js'
+import { useTheme } from '../../composables/useTheme'
+import { useI18n } from '../../composables/useI18n'
+import type { BacktestReport } from '../../types/backtest'
 
 const { theme } = useTheme()
 const { t, locale } = useI18n()
 
-const props = defineProps({
-  data:    { type: Object,  default: null },
-  loading: { type: Boolean, default: false },
-})
+const props = defineProps<{
+  data?: BacktestReport | null
+  loading?: boolean
+}>()
 
 const threshold = ref(60)
-const series = computed(() =>
-  (props.data?.series ?? []).filter(p => p.price > 0 && p.score != null)
-)
-const hasData = computed(() => series.value.length >= 24)
+const period = ref(0)                 // years of history to simulate; 0 = full
+const PERIODS = [1, 3, 5, 0]          // 0 = "Max"
 
-function maxDrawdown(equity) {
+// In-market decision points with a guaranteed numeric score.
+const series = computed(() =>
+  (props.data?.series ?? [])
+    .filter(p => p.price > 0 && p.score != null)
+    .map(p => ({ date: p.date, price: p.price, score: p.score as number }))
+)
+
+// Restrict the simulation to the last `period` years (0 = whole history).
+const windowed = computed(() => {
+  const s = series.value
+  if (!period.value || !s.length) return s
+  const cutoff = new Date(s[s.length - 1].date)
+  cutoff.setFullYear(cutoff.getFullYear() - period.value)
+  return s.filter(p => new Date(p.date) >= cutoff)
+})
+
+const hasData = computed(() => windowed.value.length >= 24)
+const periodAvailable = (y: number) => {
+  const s = series.value
+  if (!y || !s.length) return s.length >= 24
+  const cutoff = new Date(s[s.length - 1].date)
+  cutoff.setFullYear(cutoff.getFullYear() - y)
+  return s.filter(p => new Date(p.date) >= cutoff).length >= 24
+}
+
+function maxDrawdown(equity: number[]) {
   let peak = -Infinity, dd = 0
   for (const v of equity) {
     if (v > peak) peak = v
@@ -30,7 +54,7 @@ function maxDrawdown(equity) {
 
 // ── Weekly simulation: in-market when score >= threshold, else in cash ──
 const sim = computed(() => {
-  const s = series.value
+  const s = windowed.value
   if (s.length < 24) return null
   const thr = threshold.value
   const dates = [s[0].date]
@@ -45,8 +69,8 @@ const sim = computed(() => {
     dates.push(s[i].date); strat.push(eqS); bh.push(eqB)
   }
   const steps = s.length - 1
-  const years = (new Date(s[s.length - 1].date) - new Date(s[0].date)) / (365.25 * 864e5)
-  const cagr = (final) => (years > 0 && final > 0 ? Math.pow(final, 1 / years) - 1 : null)
+  const years = (new Date(s[s.length - 1].date).getTime() - new Date(s[0].date).getTime()) / (365.25 * 864e5)
+  const cagr = (final: number) => (years > 0 && final > 0 ? Math.pow(final, 1 / years) - 1 : null)
   return {
     dates, strat, bh,
     stratReturn: eqS - 1, bhReturn: eqB - 1,
@@ -58,14 +82,14 @@ const sim = computed(() => {
   }
 })
 
-const pct = (v) => (v == null ? '—' : (v > 0 ? '+' : '') + (v * 100).toFixed(1) + '%')
+const pct = (v: number | null | undefined) => (v == null ? '—' : (v > 0 ? '+' : '') + (v * 100).toFixed(1) + '%')
 const stratBeats = computed(() => sim.value && sim.value.stratReturn > sim.value.bhReturn)
 
 // ── Equity curve chart ────────────────────────────────────────────
-const canvas = ref(null)
-let chart = null
+const canvas = ref<HTMLCanvasElement | null>(null)
+let chart: Chart | null = null
 
-function cssVar(name, fallback) {
+function cssVar(name: string, fallback: string) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   return v || fallback
 }
@@ -122,6 +146,7 @@ function render() {
 watch(() => props.data, () => { if (!props.loading) nextTick(render) }, { flush: 'post' })
 watch(() => props.loading, l => { if (!l) nextTick(render) }, { flush: 'post' })
 watch(threshold, () => nextTick(render))
+watch(period, () => nextTick(render))
 watch([theme, locale], () => { if (hasData.value) nextTick(render) })
 onMounted(() => { if (!props.loading) nextTick(render) })
 onUnmounted(destroy)
@@ -139,6 +164,20 @@ onUnmounted(destroy)
     </div>
 
     <template v-else-if="hasData && sim">
+      <!-- Period window -->
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <label class="text-xs text-zinc-500 mr-1">{{ t('strategy.period') }}</label>
+        <button v-for="y in PERIODS" :key="y" type="button"
+          :disabled="!periodAvailable(y)"
+          @click="period = y"
+          :class="['px-2.5 py-1 rounded-lg text-[11px] font-mono border transition-colors disabled:opacity-30 disabled:cursor-not-allowed',
+            period === y ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                         : 'bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700']">
+          {{ y ? t('strategy.periodYears', { n: y }) : t('strategy.periodMax') }}
+        </button>
+        <span class="text-[11px] text-zinc-600 ml-auto">{{ sim.years.toFixed(1) }} {{ t('strategy.years') }}</span>
+      </div>
+
       <!-- Threshold control -->
       <div class="flex items-center gap-3 mb-5 flex-wrap">
         <label class="text-xs text-zinc-500">{{ t('strategy.threshold') }}</label>

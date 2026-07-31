@@ -1,19 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { useTheme } from '../composables/useTheme.js'
-import { useI18n } from '../composables/useI18n.js'
+import { useTheme } from '../composables/useTheme'
+import { useI18n } from '../composables/useI18n'
+import type { ThemeId } from '../types/ui'
 
-defineProps({
-  view:           { type: String,  required: true },
-  watchlistCount: { type: Number,  default: 0 },
-  history:        { type: Array,   default: () => [] },
-})
-defineEmits(['update:view', 'search', 'open-search', 'reset'])
+defineProps<{
+  view: string
+  watchlistCount?: number
+  history?: string[]
+}>()
+defineEmits<{
+  'update:view': [view: string]
+  search: [ticker: string]
+  'open-search': []
+  reset: []
+}>()
 
 const { theme, THEMES, setTheme } = useTheme()
 const { t, locale, setLocale, LOCALES } = useI18n()
 
-const themeLabel = id => ({ dark: t('header.themeDark'), gray: t('header.themeGray'), light: t('header.themeLight') }[id] ?? id)
+const themeLabel = (id: ThemeId) => (({ dark: t('header.themeDark'), gray: t('header.themeGray'), light: t('header.themeLight') } as Record<ThemeId, string>)[id] ?? id)
 
 // Platform-aware shortcut hint (⌘K on macOS, Ctrl K elsewhere).
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '')

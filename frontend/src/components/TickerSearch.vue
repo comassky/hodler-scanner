@@ -1,24 +1,29 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { refDebounced, onClickOutside } from '@vueuse/core'
 import { useQuery } from '@tanstack/vue-query'
-import { useI18n } from '../composables/useI18n.js'
+import { useI18n } from '../composables/useI18n'
+import { searchService } from '../services'
+import type { SearchResult } from '../types/search'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  modelValue: { type: String,  default: '' },
-  loading:    { type: Boolean, default: false },
-  hasResult:  { type: Boolean, default: false },
-  submitLabel:{ type: String,  default: '' },
-  showPopular:{ type: Boolean, default: true },
-})
-const emit = defineEmits(['update:modelValue', 'search'])
+const props = defineProps<{
+  modelValue?: string
+  loading?: boolean
+  hasResult?: boolean
+  submitLabel?: string
+  showPopular?: boolean
+}>()
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  search: [ticker: string]
+}>()
 
 // Local copy synced with parent via v-model
-const localInput = ref(props.modelValue)
+const localInput = ref(props.modelValue ?? '')
 
-const rootRef   = ref(null)
+const rootRef   = ref<HTMLElement | null>(null)
 const acIdx     = ref(-1)
 const dismissed = ref(false)   // true once the user picked/closed the dropdown
 const typing    = ref(false)   // true only after a real keystroke
@@ -28,7 +33,7 @@ const typing    = ref(false)   // true only after a real keystroke
 // back through modelValue with the same value, so we ignore those.
 watch(() => props.modelValue, v => {
   if (v === localInput.value) return   // echo of our own keystroke → keep dropdown state
-  localInput.value = v
+  localInput.value = v ?? ''
   typing.value = false
   dismissed.value = true
 })
@@ -38,25 +43,22 @@ const query      = computed(() => localInput.value.trim())
 const debouncedQ = refDebounced(query, 350)
 const acEnabled  = computed(() => debouncedQ.value.length >= 2)
 
-const { data: acData, isFetching: acLoading } = useQuery({
+const { data: acData, isFetching: acLoading } = useQuery<SearchResult[]>({
   queryKey: ['search', debouncedQ],
   enabled: acEnabled,
   placeholderData: prev => prev,   // keep previous results while typing (no flicker)
-  queryFn: async () => {
-    const r = await fetch(`/search?q=${encodeURIComponent(debouncedQ.value)}`)
-    return r.ok ? await r.json() : []
-  },
+  queryFn: () => searchService.query(debouncedQ.value),
 })
 
 // Items rendered in the dropdown: fetched matches, unless dismissed or too short.
 const dropdownOpen = computed(() => !dismissed.value && acEnabled.value)
-const visibleItems = computed(() => (dropdownOpen.value ? (acData.value ?? []) : []))
+const visibleItems = computed<SearchResult[]>(() => (dropdownOpen.value ? (acData.value ?? []) : []))
 const noResults    = computed(() =>
   dropdownOpen.value && !acLoading.value && visibleItems.value.length === 0
 )
 
 // Type → colored badge in the dropdown.
-const TYPE_STYLES = {
+const TYPE_STYLES: Record<string, string> = {
   Equity:         'bg-sky-500/15 text-sky-300',
   ETF:            'bg-violet-500/15 text-violet-300',
   Index:          'bg-amber-500/15 text-amber-300',
@@ -65,10 +67,10 @@ const TYPE_STYLES = {
   Fund:           'bg-indigo-500/15 text-indigo-300',
   Future:         'bg-rose-500/15 text-rose-300',
 }
-const typeClass = ty => TYPE_STYLES[ty] || 'bg-zinc-800 text-zinc-500'
+const typeClass = (ty: string) => TYPE_STYLES[ty] || 'bg-zinc-800 text-zinc-500'
 
 // Split a label into [before, match, after] to highlight the typed term.
-function parts(text) {
+function parts(text: string) {
   const s = String(text ?? '')
   const term = query.value.trim()
   if (!term) return [{ t: s, hit: false }]
@@ -86,13 +88,13 @@ watch(debouncedQ, () => { acIdx.value = -1; if (typing.value) dismissed.value = 
 // Close the dropdown when clicking outside the component.
 onClickOutside(rootRef, () => { dismissed.value = true; acIdx.value = -1 })
 
-function onInput(e) {
+function onInput(e: Event) {
   typing.value = true
-  localInput.value = e.target.value
+  localInput.value = (e.target as HTMLInputElement).value
   emit('update:modelValue', localInput.value)
 }
 
-function pickAc(ticker) {
+function pickAc(ticker: string) {
   localInput.value = ticker
   emit('update:modelValue', ticker)
   typing.value    = false
@@ -101,7 +103,7 @@ function pickAc(ticker) {
   emit('search', ticker)
 }
 
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent) {
   if (!visibleItems.value.length) return
   if (e.key === 'ArrowDown') {
     e.preventDefault()

@@ -1,16 +1,17 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import InfoTip from '../InfoTip.vue'
-import { useI18n } from '../../composables/useI18n.js'
+import { useI18n } from '../../composables/useI18n'
+import type { Diagnostic } from '../../types/analysis'
 
-const props = defineProps({
-  diagnostics: { type: Array, default: () => [] },
-})
+const props = defineProps<{
+  diagnostics?: Diagnostic[]
+}>()
 
 const { t } = useI18n()
-const forces     = computed(() => props.diagnostics.filter(x => x.impact > 0))
-const vigilances = computed(() => props.diagnostics.filter(x => x.impact < 0))
-const neutres    = computed(() => props.diagnostics.filter(x => x.impact === 0))
+const forces     = computed(() => (props.diagnostics ?? []).filter(x => x.impact > 0))
+const vigilances = computed(() => (props.diagnostics ?? []).filter(x => x.impact < 0))
+const neutres    = computed(() => (props.diagnostics ?? []).filter(x => x.impact === 0))
 </script>
 
 <template>

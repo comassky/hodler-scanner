@@ -1,13 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import DashboardCard from './DashboardCard.vue'
 import TickerSearch from './TickerSearch.vue'
-import { useWatchlist } from '../composables/useWatchlist.js'
-import { useI18n } from '../composables/useI18n.js'
+import { useWatchlist } from '../composables/useWatchlist'
+import { useI18n } from '../composables/useI18n'
+import { tickerService } from '../services'
+import type { DashboardItem } from '../types/analysis'
 
-const emit = defineEmits(['analyse'])
+const emit = defineEmits<{ analyse: [ticker: string] }>()
 
 const { watchlist, add, remove } = useWatchlist()
 const { t, locale } = useI18n()
@@ -23,20 +25,15 @@ const sortBy = useLocalStorage('smm_dash_sort', 'scoreDesc')
 // Not keyed by the watchlist: adding a ticker shows a stub until it is loaded,
 // matching the original behaviour (explicit "Load" / "Refresh all").
 const dashKey = computed(() => ['dashboard', locale.value])
-const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
+const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery<DashboardItem[]>({
   queryKey: dashKey,
   enabled: computed(() => watchlist.value.length > 0),
   refetchInterval: 5 * 60 * 1000,
   refetchIntervalInBackground: false,
-  queryFn: async () => {
-    const res = await fetch('/tickers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tickers: watchlist.value, lang: locale.value }),
-    })
-    if (!res.ok) throw new Error(t('dash.serverError'))
-    return (await res.json()).results
-  },
+  queryFn: () =>
+    tickerService.dashboard(watchlist.value, locale.value).catch(() => {
+      throw new Error(t('dash.serverError'))
+    }),
 })
 
 const dashData    = computed(() => data.value ?? [])
@@ -47,8 +44,8 @@ const lastRefresh = computed(() => (dataUpdatedAt.value ? new Date(dataUpdatedAt
 
 // Sorted cards: by default descending score; errors always at the end
 const sortedData = computed(() => {
-  const score = d => d?.analysis?.score ?? -Infinity
-  const change = d => d?.price?.var_jour_pct ?? -Infinity
+  const score = (d: DashboardItem) => d?.analysis?.score ?? -Infinity
+  const change = (d: DashboardItem) => d?.price?.var_jour_pct ?? -Infinity
   return [...dashData.value].sort((a, b) => {
     if (a.error !== b.error) return a.error ? 1 : -1
     if (a.error && b.error) return a.ticker.localeCompare(b.ticker)
@@ -66,13 +63,13 @@ const unloadedTickers = computed(() => watchlist.value.filter(t => !loadedTicker
 
 function loadDashboard() { refetch() }
 
-function removeCard(ticker) {
+function removeCard(ticker: string) {
   remove(ticker)
   // Drop the card from the cache without a full refetch.
-  queryClient.setQueryData(dashKey.value, old => (old ?? []).filter(r => r.ticker !== ticker))
+  queryClient.setQueryData<DashboardItem[]>(dashKey.value, old => (old ?? []).filter(r => r.ticker !== ticker))
 }
 
-function addWlInput(code) {
+function addWlInput(code?: string) {
   const c = (typeof code === 'string' ? code : wlInput.value).trim().toUpperCase()
   wlInput.value = ''
   if (!c || watchlist.value.includes(c)) return
@@ -83,17 +80,11 @@ function addWlInput(code) {
 }
 
 // Fetch a single ticker and merge it into the dashboard cache (no full reload).
-async function fetchTicker(code) {
+async function fetchTicker(code: string) {
   adding.value = true
   try {
-    const res = await fetch('/tickers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tickers: [code], lang: locale.value }),
-    })
-    if (!res.ok) throw new Error(t('dash.serverError'))
-    const results = (await res.json()).results ?? []
-    queryClient.setQueryData(dashKey.value, old => {
+    const results = await tickerService.dashboard([code], locale.value)
+    queryClient.setQueryData<DashboardItem[]>(dashKey.value, old => {
       const map = new Map((old ?? []).map(r => [r.ticker, r]))
       for (const r of results) map.set(r.ticker, r)
       return [...map.values()]

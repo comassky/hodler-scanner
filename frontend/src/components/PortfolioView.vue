@@ -1,11 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
-import { usePortfolio } from '../composables/usePortfolio.js'
-import { useFormatters } from '../composables/useFormatters.js'
-import { useI18n } from '../composables/useI18n.js'
+import { usePortfolio } from '../composables/usePortfolio'
+import { useFormatters } from '../composables/useFormatters'
+import { useI18n } from '../composables/useI18n'
 import TickerAutocomplete from './TickerAutocomplete.vue'
+import type { Position } from '../types/portfolio'
 
-const emit = defineEmits(['analyse'])
+const emit = defineEmits<{ analyse: [ticker: string] }>()
 
 const { positions, totals, loading, refreshing, errorMsg, lastRefresh, refetch, upsert, remove } = usePortfolio()
 const { fmt, fmtPct, varColor } = useFormatters()
@@ -27,7 +28,7 @@ function resetForm() {
   editing.value = false
 }
 
-function startEdit(p) {
+function startEdit(p: Position) {
   form.value = {
     ticker: p.ticker,
     quantity: String(p.quantity),
@@ -49,7 +50,7 @@ async function submit() {
   }
 }
 
-const money = (v) => (v == null ? '—' : Number(v).toLocaleString(locale.value, { maximumFractionDigits: 2 }))
+const money = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString(locale.value, { maximumFractionDigits: 2 }))
 </script>
 
 <template>

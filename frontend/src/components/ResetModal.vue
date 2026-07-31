@@ -1,21 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { useI18n } from '../composables/useI18n.js'
+import { useI18n } from '../composables/useI18n'
+import type { ResetOptions } from '../types/ui'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  open: { type: Boolean, default: false },
-})
-const emit = defineEmits(['close', 'confirm'])
+const props = defineProps<{
+  open?: boolean
+}>()
+const emit = defineEmits<{
+  close: []
+  confirm: [options: ResetOptions, done: () => void]
+}>()
 
-const panelEl = ref(null)
-let _prevFocus = null
+const panelEl = ref<HTMLElement | null>(null)
+let _prevFocus: HTMLElement | null = null
 const busy = ref(false)
 
 // One switch per data type. Caches & stored backtests default ON (safe / rebuildable);
 // user data (watchlist, portfolio) and the ticker dictionary default OFF.
-const options = ref({
+const options = ref<ResetOptions>({
   caches:    true,
   backtests: true,
   watchlist: false,
@@ -35,10 +39,10 @@ const anySelected = computed(() => Object.values(options.value).some(Boolean))
 
 watch(() => props.open, (v) => {
   if (v) {
-    _prevFocus = document.activeElement
+    _prevFocus = document.activeElement as HTMLElement | null
     busy.value = false
     nextTick(() => panelEl.value?.querySelector('button')?.focus())
-  } else if (_prevFocus && typeof _prevFocus.focus === 'function') {
+  } else if (_prevFocus) {
     _prevFocus.focus()
     _prevFocus = null
   }
@@ -51,10 +55,10 @@ async function confirm() {
   emit('confirm', { ...options.value }, () => { busy.value = false; emit('close') })
 }
 
-function trapTab(e) {
+function trapTab(e: KeyboardEvent) {
   const root = panelEl.value
   if (!root) return
-  const nodes = root.querySelectorAll(
+  const nodes = root.querySelectorAll<HTMLElement>(
     'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
   )
   if (!nodes.length) return
@@ -67,7 +71,7 @@ function trapTab(e) {
   }
 }
 
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && !busy.value) { emit('close'); return }
   if (e.key === 'Tab') trapTab(e)
 }

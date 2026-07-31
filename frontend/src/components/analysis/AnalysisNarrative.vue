@@ -1,12 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import InfoTip from '../InfoTip.vue'
-import { useFormatters } from '../../composables/useFormatters.js'
-import { useI18n } from '../../composables/useI18n.js'
+import { useFormatters } from '../../composables/useFormatters'
+import { useI18n } from '../../composables/useI18n'
+import type { AnalysisBlock } from '../../types/analysis'
 
-const props = defineProps({
-  analysis: { type: Object, required: true },
-})
+const props = defineProps<{
+  analysis: AnalysisBlock
+}>()
 
 const { t } = useI18n()
 const { scoreStatus } = useFormatters()

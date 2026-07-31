@@ -1,33 +1,34 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import Chart from 'chart.js/auto'
+import { Chart } from '../lib/chart'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import InfoTip from './InfoTip.vue'
-import { useTheme } from '../composables/useTheme.js'
-import { useI18n } from '../composables/useI18n.js'
+import { useTheme } from '../composables/useTheme'
+import { useI18n } from '../composables/useI18n'
+import type { ChartData } from '../types/market'
 
 Chart.register(zoomPlugin)
 
 const { theme } = useTheme()
 const { t, locale } = useI18n()
 
-const props = defineProps({
-  data:    { type: Object,  default: null },
-  loading: { type: Boolean, default: false },
-  period:  { type: String,  default: '6mo' },
-})
-defineEmits(['update:period'])
+const props = defineProps<{
+  data?: ChartData | null
+  loading?: boolean
+  period?: string
+}>()
+defineEmits<{ 'update:period': [period: string] }>()
 
 // ── Canvas refs ───────────────────────────────────────────────────
-const chartCanvas = ref(null)
-const rsiCanvas   = ref(null)
-const macdCanvas  = ref(null)
-const divCanvas   = ref(null)
-const divInfo     = ref(null)
+const chartCanvas = ref<HTMLCanvasElement | null>(null)
+const rsiCanvas   = ref<HTMLCanvasElement | null>(null)
+const macdCanvas  = ref<HTMLCanvasElement | null>(null)
+const divCanvas   = ref<HTMLCanvasElement | null>(null)
+const divInfo     = ref<HTMLElement | null>(null)
 const zoomed      = ref(false)
 const showFib     = ref(true)
 const showBoll    = ref(false)
-let priceChart = null, rsiChart = null, macdChart = null, divChart = null
+let priceChart: Chart | null = null, rsiChart: Chart | null = null, macdChart: Chart | null = null, divChart: Chart | null = null
 
 function resetZoom() {
   priceChart?.resetZoom()
@@ -49,13 +50,13 @@ function toggleBoll() {
 }
 
 // ── Chart theme (resolved from the active theme's CSS variables) ──
-function cssVar(name, fallback, style) {
+function cssVar(name: string, fallback: string, style?: CSSStyleDeclaration) {
   const s = style || getComputedStyle(document.documentElement)
   const v = s.getPropertyValue(name).trim()
   return v || fallback
 }
 
-function withAlpha(hex, a) {
+function withAlpha(hex: string, a: number) {
   const h = hex.replace('#', '')
   if (h.length !== 6) return hex
   const r = parseInt(h.slice(0, 2), 16)

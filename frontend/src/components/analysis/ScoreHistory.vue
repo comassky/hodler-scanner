@@ -1,24 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import Chart from 'chart.js/auto'
+import { Chart } from '../../lib/chart'
 import InfoTip from '../InfoTip.vue'
-import { useTheme } from '../../composables/useTheme.js'
-import { useI18n } from '../../composables/useI18n.js'
+import { useTheme } from '../../composables/useTheme'
+import { useI18n } from '../../composables/useI18n'
+import type { BacktestReport } from '../../types/backtest'
 
 const { theme } = useTheme()
 const { t } = useI18n()
 
-const props = defineProps({
-  data:    { type: Object,  default: null },
-  loading: { type: Boolean, default: false },
-})
+const props = defineProps<{
+  data?: BacktestReport | null
+  loading?: boolean
+}>()
 
 const timing = computed(() => props.data?.timing ?? null)
-const scores = computed(() => (props.data?.series ?? []).map(p => p.score).filter(s => s != null))
+const scores = computed(() => (props.data?.series ?? []).map(p => p.score).filter((s): s is number => s != null))
 const hasData = computed(() => scores.value.length >= 12 && timing.value != null)
 
 // Band thresholds mirror the backend (_BANDS: 80 / 60 / 40).
-function bandColor(s) {
+function bandColor(s: number) {
   if (s >= 80) return '#34d399'
   if (s >= 60) return '#38bdf8'
   if (s >= 40) return '#fbbf24'
@@ -38,10 +39,10 @@ const current = computed(() => timing.value?.current_score ?? null)
 const percentile = computed(() => timing.value?.percentile ?? null)
 
 // ── Histogram (10-point bins) ─────────────────────────────────────
-const canvas = ref(null)
-let chart = null
+const canvas = ref<HTMLCanvasElement | null>(null)
+let chart: Chart | null = null
 
-function cssVar(name, fallback) {
+function cssVar(name: string, fallback: string) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   return v || fallback
 }

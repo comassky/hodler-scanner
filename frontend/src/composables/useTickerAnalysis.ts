@@ -1,7 +1,17 @@
 import { ref, computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { useQuery } from '@tanstack/vue-query'
-import { useI18n } from './useI18n.js'
+import { useI18n } from './useI18n'
+import { tickerService } from '../services/tickerService'
+import type { Analysis, ScoreDetails } from '../types/analysis'
+import type { ChartData, Fundamentals, News } from '../types/market'
+import type { BacktestReport } from '../types/backtest'
+
+export interface ScoreContribution {
+  key: string
+  val: number
+  label: string
+}
 
 /**
  * Ticker analysis data layer: owns the active ticker, the TanStack queries
@@ -15,59 +25,37 @@ export function useTickerAnalysis() {
   const period       = ref('6mo')
   const activeTicker = ref('')      // currently analyzed ticker — drives the queries
   const forceReload  = ref(false)   // one-shot cache-bypass flag for a forced refresh
-  const history      = useLocalStorage('smm_history', [])
+  const history      = useLocalStorage<string[]>('smm_history', [])
 
-  const enc = s => encodeURIComponent(s)
-  function withRefresh(url) {
-    if (!forceReload.value) return url
-    return url + (url.includes('?') ? '&' : '?') + 'refresh=true'
-  }
   const queryEnabled = computed(() => !!activeTicker.value)
 
   // Main analysis (localized) — re-fetched automatically on ticker/locale change.
-  const tickerQuery = useQuery({
+  const tickerQuery = useQuery<Analysis>({
     queryKey: ['ticker', activeTicker, locale],
     enabled: queryEnabled,
-    queryFn: async () => {
-      const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}?lang=${locale.value}`))
-      if (!r.ok) throw new Error(((await r.json().catch(() => ({}))).detail) ?? `HTTP ${r.status}`)
-      return r.json()
-    },
+    queryFn: () => tickerService.analysis(activeTicker.value, locale.value, forceReload.value),
   })
   // Chart — re-fetched automatically on ticker/period change (no page spinner).
-  const chartQuery = useQuery({
+  const chartQuery = useQuery<ChartData | null>({
     queryKey: ['chart', activeTicker, period],
     enabled: queryEnabled,
-    queryFn: async () => {
-      const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}/chart?period=${period.value}`))
-      return r.ok ? r.json() : null
-    },
+    queryFn: () => tickerService.chart(activeTicker.value, period.value, forceReload.value),
   })
-  const fundamentalsQuery = useQuery({
+  const fundamentalsQuery = useQuery<Fundamentals | null>({
     queryKey: ['fundamentals', activeTicker],
     enabled: queryEnabled,
-    queryFn: async () => {
-      const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}/fundamentals`))
-      return r.ok ? r.json() : null
-    },
+    queryFn: () => tickerService.fundamentals(activeTicker.value, forceReload.value),
   })
-  const newsQuery = useQuery({
+  const newsQuery = useQuery<News | null>({
     queryKey: ['news', activeTicker],
     enabled: queryEnabled,
-    queryFn: async () => {
-      const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}/news`))
-      return r.ok ? r.json() : null
-    },
+    queryFn: () => tickerService.news(activeTicker.value, forceReload.value),
   })
-  const backtestQuery = useQuery({
+  const backtestQuery = useQuery<BacktestReport>({
     queryKey: ['backtest', activeTicker],
     enabled: queryEnabled,
     retry: false,
-    queryFn: async () => {
-      const r = await fetch(withRefresh(`/ticker/${enc(activeTicker.value)}/backtest`))
-      if (!r.ok) throw new Error(((await r.json().catch(() => ({}))).detail) ?? `HTTP ${r.status}`)
-      return r.json()
-    },
+    queryFn: () => tickerService.backtest(activeTicker.value, forceReload.value),
   })
 
   // Map query state onto friendly names.
@@ -87,18 +75,18 @@ export function useTickerAnalysis() {
   const backtestError   = computed(() => backtestQuery.error.value?.message ?? null)
 
   // Score contributions, sorted by descending impact (for the signed bars).
-  const scoreContribs = computed(() => {
-    const sd = result.value?.analysis?.score_details
+  const scoreContribs = computed<ScoreContribution[]>(() => {
+    const sd: ScoreDetails | undefined = result.value?.analysis?.score_details
     if (!sd) return []
     return Object.entries(sd)
-      .map(([key, val]) => ({ key, val, label: t(`scoreComp.${key}`) }))
+      .map(([key, val]) => ({ key, val, label: t(`scoreComp.${key}`) as string }))
       .sort((a, b) => b.val - a.val)
   })
   const scoreContribMax = computed(() =>
     Math.max(1, ...scoreContribs.value.map(c => Math.abs(c.val)))
   )
 
-  async function search(ticker, force = false) {
+  async function search(ticker: string | null = null, force = false): Promise<void> {
     const code = (ticker || input.value).trim().toUpperCase()
     if (!code) return
     input.value = code

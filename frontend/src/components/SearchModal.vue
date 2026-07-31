@@ -1,42 +1,44 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { refDebounced } from '@vueuse/core'
 import { useQuery } from '@tanstack/vue-query'
-import { useI18n } from '../composables/useI18n.js'
+import { useI18n } from '../composables/useI18n'
+import { searchService } from '../services'
+import type { SearchResult } from '../types/search'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  open: { type: Boolean, default: false },
-})
-const emit = defineEmits(['close', 'search'])
+const props = defineProps<{
+  open?: boolean
+}>()
+const emit = defineEmits<{
+  close: []
+  search: [ticker: string]
+}>()
 
-const inputEl = ref(null)
-const panelEl = ref(null)
+const inputEl = ref<HTMLInputElement | null>(null)
+const panelEl = ref<HTMLElement | null>(null)
 const term    = ref('')
 const acIdx   = ref(-1)
-let _prevFocus = null
+let _prevFocus: HTMLElement | null = null
 
 // Debounced query term (≥ 2 chars) drives the search request.
 const query      = computed(() => term.value.trim())
 const debouncedQ = refDebounced(query, 300)
 const enabled    = computed(() => debouncedQ.value.length >= 2)
 
-const { data: acData, isFetching: acLoading } = useQuery({
+const { data: acData, isFetching: acLoading } = useQuery<SearchResult[]>({
   queryKey: ['search', debouncedQ],
   enabled,
   placeholderData: prev => prev,
-  queryFn: async () => {
-    const r = await fetch(`/search?q=${encodeURIComponent(debouncedQ.value)}`)
-    return r.ok ? await r.json() : []
-  },
+  queryFn: () => searchService.query(debouncedQ.value),
 })
 
-const items     = computed(() => (enabled.value ? (acData.value ?? []) : []))
+const items     = computed<SearchResult[]>(() => (enabled.value ? (acData.value ?? []) : []))
 const noResults = computed(() => enabled.value && !acLoading.value && items.value.length === 0)
 
 // Type → colored badge (mirrors TickerSearch).
-const TYPE_STYLES = {
+const TYPE_STYLES: Record<string, string> = {
   Equity:         'bg-sky-500/15 text-sky-300',
   ETF:            'bg-violet-500/15 text-violet-300',
   Index:          'bg-amber-500/15 text-amber-300',
@@ -45,10 +47,10 @@ const TYPE_STYLES = {
   Fund:           'bg-indigo-500/15 text-indigo-300',
   Future:         'bg-rose-500/15 text-rose-300',
 }
-const typeClass = ty => TYPE_STYLES[ty] || 'bg-zinc-800 text-zinc-500'
+const typeClass = (ty: string) => TYPE_STYLES[ty] || 'bg-zinc-800 text-zinc-500'
 
 // Highlight the typed term inside a label.
-function parts(text) {
+function parts(text: string) {
   const s = String(text ?? '')
   const q = query.value
   if (!q) return [{ t: s, hit: false }]
@@ -66,17 +68,17 @@ watch(debouncedQ, () => { acIdx.value = -1 })
 // Reset + focus each time the modal opens; restore focus to the trigger on close.
 watch(() => props.open, (v) => {
   if (v) {
-    _prevFocus = document.activeElement
+    _prevFocus = document.activeElement as HTMLElement | null
     term.value = ''
     acIdx.value = -1
     nextTick(() => inputEl.value?.focus())
-  } else if (_prevFocus && typeof _prevFocus.focus === 'function') {
+  } else if (_prevFocus) {
     _prevFocus.focus()
     _prevFocus = null
   }
 })
 
-function pick(ticker) {
+function pick(ticker: string) {
   if (!ticker) return
   emit('search', ticker)
   emit('close')
@@ -88,10 +90,10 @@ function submitRaw() {
 }
 
 // Keep Tab focus inside the dialog (basic focus trap).
-function trapTab(e) {
+function trapTab(e: KeyboardEvent) {
   const root = panelEl.value
   if (!root) return
-  const nodes = root.querySelectorAll(
+  const nodes = root.querySelectorAll<HTMLElement>(
     'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
   )
   if (!nodes.length) return
@@ -104,7 +106,7 @@ function trapTab(e) {
   }
 }
 
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') { emit('close'); return }
   if (e.key === 'Tab') { trapTab(e); return }
   if (e.key === 'ArrowDown') {

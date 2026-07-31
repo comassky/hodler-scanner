@@ -2,51 +2,56 @@
 import threading
 import time
 
+from cachetools import TTLCache as _TTLCache
+
 
 class TTLCache:
-    """Thread-safe cache with automatic expiration."""
+    """Thread-safe, size-bounded cache with automatic expiration (wraps cachetools)."""
 
-    def __init__(self, ttl_seconds: int = 900):
+    def __init__(self, ttl_seconds: int = 900, maxsize: int = 2048):
         self._ttl = ttl_seconds
-        self._store: dict[str, tuple[float, dict]] = {}
+        self._store = _TTLCache(maxsize=maxsize, ttl=ttl_seconds)
+        self._added: dict[str, float] = {}   # key -> insertion time, for info()
         self._lock = threading.Lock()
 
     def get(self, key: str):
         with self._lock:
-            entry = self._store.get(key)
-            if entry and (time.monotonic() - entry[0]) < self._ttl:
-                return entry[1]
-            return None
+            return self._store.get(key)
 
     def set(self, key: str, value: dict) -> None:
         with self._lock:
-            self._store[key] = (time.monotonic(), value)
+            self._store[key] = value
+            self._added[key] = time.monotonic()
 
     def invalidate(self, key: str) -> bool:
         with self._lock:
+            self._added.pop(key, None)
             return self._store.pop(key, None) is not None
 
     def clear(self) -> int:
         with self._lock:
             n = len(self._store)
             self._store.clear()
+            self._added.clear()
             return n
 
     def info(self) -> dict:
         now = time.monotonic()
         with self._lock:
-            valid = [(k, v) for k, v in self._store.items() if (now - v[0]) < self._ttl]
-        return {
-            "ttl_seconds": self._ttl,
-            "count": len(valid),
-            "entries": [
+            self._store.expire()                       # drop expired entries
+            self._added = {k: t for k, t in self._added.items() if k in self._store}
+            entries = [
                 {
                     "ticker": k,
-                    "age_s": int(now - v[0]),
-                    "expires_in_s": max(0, int(self._ttl - (now - v[0]))),
+                    "age_s": int(now - t),
+                    "expires_in_s": max(0, int(self._ttl - (now - t))),
                 }
-                for k, v in valid
-            ],
+                for k, t in self._added.items()
+            ]
+        return {
+            "ttl_seconds": self._ttl,
+            "count": len(entries),
+            "entries": entries,
         }
 
 

@@ -1,14 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import InfoTip from '../InfoTip.vue'
-import { useFormatters } from '../../composables/useFormatters.js'
-import { useI18n } from '../../composables/useI18n.js'
+import { useFormatters } from '../../composables/useFormatters'
+import { useI18n } from '../../composables/useI18n'
+import type { ScoreContribution } from '../../composables/useTickerAnalysis'
 
-const props = defineProps({
-  contribs: { type: Array,  required: true },   // [{ key, val, label }]
-  max:      { type: Number, default: 1 },
-  score:    { type: Number, default: 0 },
-})
+const props = defineProps<{
+  contribs: ScoreContribution[]
+  max?: number
+  score?: number
+}>()
 
 const { t } = useI18n()
 const { scoreCompClass, scoreStatus } = useFormatters()

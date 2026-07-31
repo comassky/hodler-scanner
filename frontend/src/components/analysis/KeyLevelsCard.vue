@@ -1,12 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import InfoTip from '../InfoTip.vue'
-import { useFormatters } from '../../composables/useFormatters.js'
-import { useI18n } from '../../composables/useI18n.js'
+import { useFormatters } from '../../composables/useFormatters'
+import { useI18n } from '../../composables/useI18n'
+import type { AnalysisIndicators, AnalysisDistances } from '../../types/analysis'
 
-defineProps({
-  indicators: { type: Object, required: true },
-  distances:  { type: Object, required: true },
-})
+defineProps<{
+  indicators: AnalysisIndicators
+  distances: AnalysisDistances
+}>()
 
 const { t } = useI18n()
 const { fmt, fmtPct, distClass } = useFormatters()

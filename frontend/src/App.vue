@@ -1,34 +1,38 @@
-<script setup>
-import { ref, computed, watch, nextTick, onBeforeUnmount, onMounted } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, nextTick, onBeforeUnmount, onMounted, defineAsyncComponent } from 'vue'
 import AppHeader      from './components/AppHeader.vue'
 import TickerSearch   from './components/TickerSearch.vue'
 import SearchModal    from './components/SearchModal.vue'
-import TickerCharts   from './components/TickerCharts.vue'
 import DashboardView  from './components/DashboardView.vue'
 import PortfolioView  from './components/PortfolioView.vue'
 import ResetModal     from './components/ResetModal.vue'
 import NewsList       from './components/NewsList.vue'
-import BacktestPanel  from './components/BacktestPanel.vue'
 import AnalysisOverview  from './components/analysis/AnalysisOverview.vue'
 import EntryTiming       from './components/analysis/EntryTiming.vue'
-import ScoreHistory      from './components/analysis/ScoreHistory.vue'
-import StrategyBacktest  from './components/analysis/StrategyBacktest.vue'
 import IndicatorsCard    from './components/analysis/IndicatorsCard.vue'
 import KeyLevelsCard     from './components/analysis/KeyLevelsCard.vue'
 import FundamentalsCard  from './components/analysis/FundamentalsCard.vue'
 import AnalysisNarrative from './components/analysis/AnalysisNarrative.vue'
 import ScoreBreakdown    from './components/analysis/ScoreBreakdown.vue'
 import DiagnosticsCards  from './components/analysis/DiagnosticsCards.vue'
-import { useWatchlist }      from './composables/useWatchlist.js'
-import { useI18n }           from './composables/useI18n.js'
-import { useTickerAnalysis } from './composables/useTickerAnalysis.js'
+
+// Chart.js-heavy views — lazy-loaded so Chart.js ships in a separate chunk.
+const TickerCharts     = defineAsyncComponent(() => import('./components/TickerCharts.vue'))
+const BacktestPanel    = defineAsyncComponent(() => import('./components/BacktestPanel.vue'))
+const ScoreHistory     = defineAsyncComponent(() => import('./components/analysis/ScoreHistory.vue'))
+const StrategyBacktest = defineAsyncComponent(() => import('./components/analysis/StrategyBacktest.vue'))
+import { useWatchlist }      from './composables/useWatchlist'
+import { useI18n }           from './composables/useI18n'
+import { useTickerAnalysis } from './composables/useTickerAnalysis'
 import { useQueryClient }    from '@tanstack/vue-query'
 import { useLocalStorage }   from '@vueuse/core'
+import { systemService }     from './services'
+import type { ResetOptions }  from './types/ui'
 
 // ── i18n ──────────────────────────────────────────────
 const { t, locale } = useI18n()
 
-// App version — injected at build time by Vite (see vite.config.js).
+// App version — injected at build time by Vite (see vite.config.ts).
 /* global __APP_VERSION__ */
 const appVersion = __APP_VERSION__
 
@@ -83,21 +87,16 @@ watch(availableTabs, (tabs) => {
 }, { immediate: true })
 
 // ── Dashboard → Analysis ──────────────────────────────────────────
-function goToAnalyse(ticker) {
+function goToAnalyse(ticker: string) {
   view.value = 'analyse'
   nextTick(() => search(ticker))
 }
 
 // ── Reset (selective clear of caches + DB rows) ─────────────────
 const resetModalOpen = ref(false)
-async function onResetConfirm(options, done) {
+async function onResetConfirm(options: ResetOptions, done?: () => void) {
   try {
-    const res = await fetch('/reset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(options),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    await systemService.reset(options)
     if (options.watchlist) resetWatchlist()
     await queryClient.invalidateQueries()
     if (options.portfolio && view.value === 'portfolio') view.value = 'watchlist'
@@ -111,13 +110,13 @@ async function onResetConfirm(options, done) {
 // ── Global quick-search modal (Ctrl/Cmd + F) ──────────────────────
 const searchModalOpen = ref(false)
 
-function isTypingTarget(el) {
-  if (!el) return false
+function isTypingTarget(el: EventTarget | null) {
+  if (!el || !(el instanceof HTMLElement)) return false
   const tag = el.tagName
   return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
 }
 
-function onGlobalKeydown(e) {
+function onGlobalKeydown(e: KeyboardEvent) {
   // Open our ticker/ISIN quick-search with Cmd/Ctrl+K (the industry-standard
   // command-palette shortcut), or "/" when the user isn't already typing in a
   // field. The browser's native Cmd/Ctrl+F ("find in page") is left untouched.
@@ -129,7 +128,7 @@ function onGlobalKeydown(e) {
   }
 }
 
-function onModalSearch(ticker) {
+function onModalSearch(ticker: string) {
   view.value = 'analyse'
   nextTick(() => search(ticker))
 }

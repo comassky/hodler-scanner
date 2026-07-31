@@ -1,29 +1,34 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { refDebounced, onClickOutside } from '@vueuse/core'
 import { useQuery } from '@tanstack/vue-query'
-import { useI18n } from '../composables/useI18n.js'
+import { useI18n } from '../composables/useI18n'
+import { searchService } from '../services'
+import type { SearchResult } from '../types/search'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  modelValue:  { type: String,  default: '' },
-  disabled:    { type: Boolean, default: false },
-  placeholder: { type: String,  default: '' },
-})
-const emit = defineEmits(['update:modelValue', 'select'])
+const props = defineProps<{
+  modelValue?: string
+  disabled?: boolean
+  placeholder?: string
+}>()
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  select: [ticker: string]
+}>()
 
-const rootRef   = ref(null)
+const rootRef   = ref<HTMLElement | null>(null)
 const acIdx     = ref(-1)
 const dismissed = ref(true)   // closed until the user types
 const typing    = ref(false)
 
 // Keep the field in sync when the parent sets the value programmatically
 // (e.g. clearing the form). Echoes of our own keystrokes are ignored.
-const localInput = ref(props.modelValue)
+const localInput = ref(props.modelValue ?? '')
 watch(() => props.modelValue, v => {
   if (v === localInput.value) return
-  localInput.value = v
+  localInput.value = v ?? ''
   typing.value = false
   dismissed.value = true
 })
@@ -32,20 +37,17 @@ const query      = computed(() => localInput.value.trim())
 const debouncedQ = refDebounced(query, 350)
 const acEnabled  = computed(() => debouncedQ.value.length >= 2)
 
-const { data: acData, isFetching: acLoading } = useQuery({
+const { data: acData, isFetching: acLoading } = useQuery<SearchResult[]>({
   queryKey: ['search', debouncedQ],
   enabled: acEnabled,
   placeholderData: prev => prev,
-  queryFn: async () => {
-    const r = await fetch(`/search?q=${encodeURIComponent(debouncedQ.value)}`)
-    return r.ok ? await r.json() : []
-  },
+  queryFn: () => searchService.query(debouncedQ.value),
 })
 
 const dropdownOpen  = computed(() => !dismissed.value && acEnabled.value && !props.disabled)
-const visibleItems  = computed(() => (dropdownOpen.value ? (acData.value ?? []) : []))
+const visibleItems  = computed<SearchResult[]>(() => (dropdownOpen.value ? (acData.value ?? []) : []))
 
-const TYPE_STYLES = {
+const TYPE_STYLES: Record<string, string> = {
   Equity:         'bg-sky-500/15 text-sky-300',
   ETF:            'bg-violet-500/15 text-violet-300',
   Index:          'bg-amber-500/15 text-amber-300',
@@ -54,9 +56,9 @@ const TYPE_STYLES = {
   Fund:           'bg-indigo-500/15 text-indigo-300',
   Future:         'bg-rose-500/15 text-rose-300',
 }
-const typeClass = ty => TYPE_STYLES[ty] || 'bg-zinc-800 text-zinc-500'
+const typeClass = (ty: string) => TYPE_STYLES[ty] || 'bg-zinc-800 text-zinc-500'
 
-function parts(text) {
+function parts(text: string) {
   const s = String(text ?? '')
   const term = query.value.trim()
   if (!term) return [{ t: s, hit: false }]
@@ -72,13 +74,13 @@ function parts(text) {
 watch(debouncedQ, () => { acIdx.value = -1; if (typing.value) dismissed.value = false })
 onClickOutside(rootRef, () => { dismissed.value = true; acIdx.value = -1 })
 
-function onInput(e) {
+function onInput(e: Event) {
   typing.value = true
-  localInput.value = e.target.value
+  localInput.value = (e.target as HTMLInputElement).value
   emit('update:modelValue', localInput.value)
 }
 
-function pick(ticker) {
+function pick(ticker: string) {
   localInput.value = ticker
   emit('update:modelValue', ticker)
   emit('select', ticker)
@@ -87,7 +89,7 @@ function pick(ticker) {
   acIdx.value     = -1
 }
 
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent) {
   if (!visibleItems.value.length) return
   if (e.key === 'ArrowDown') {
     e.preventDefault()

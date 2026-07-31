@@ -1,22 +1,23 @@
 import { computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
+import type { LocaleId, LocaleOption, I18nParams } from '../types'
 
 // Available languages — English by default, choice persisted in localStorage.
-export const LOCALES = [
+export const LOCALES: LocaleOption[] = [
   { id: 'en', label: 'EN', name: 'English' },
   { id: 'fr', label: 'FR', name: 'Français' },
 ]
 
 const _ids = LOCALES.map(l => l.id)
-const locale = useLocalStorage('smm_locale', 'en')
+const locale = useLocalStorage<LocaleId>('smm_locale', 'en')
 if (!_ids.includes(locale.value)) locale.value = 'en'
 
-function setLocale(l) {
+function setLocale(l: LocaleId) {
   if (_ids.includes(l)) locale.value = l
 }
 
 // ── Message catalog ─────────────────────────────────────────────────
-const messages = {
+const messages: Record<LocaleId, any> = {
   en: {
     header: {
       analysis: 'Analysis', dashboard: 'Dashboard', portfolio: 'Portfolio', recent: 'Recent:',
@@ -104,6 +105,7 @@ const messages = {
       title: 'Strategy backtest',
       subtitle: 'Score-timed exposure vs staying fully invested (buy & hold)',
       threshold: 'Invest when score ≥',
+      period: 'Period', periodMax: 'Max', periodYears: '{n}Y',
       exposure: '{pct}% of the time in market',
       strategy: 'Score-timed', buyHold: 'Buy & Hold',
       stratReturn: 'Strategy', cagr: 'CAGR', maxDD: 'Max drawdown',
@@ -627,6 +629,7 @@ const messages = {
       title: 'Backtest de stratégie',
       subtitle: 'Exposition pilotée par le score vs rester investi (buy & hold)',
       threshold: 'Investir si score ≥',
+      period: 'Période', periodMax: 'Max', periodYears: '{n}A',
       exposure: '{pct}% du temps exposé',
       strategy: 'Piloté par le score', buyHold: 'Buy & Hold',
       stratReturn: 'Stratégie', cagr: 'TCAM', maxDD: 'Perte max',
@@ -1065,17 +1068,17 @@ const messages = {
   },
 }
 
-function _lookup(loc, key) {
-  return key.split('.').reduce((o, k) => (o == null ? undefined : o[k]), messages[loc])
+function _lookup(loc: LocaleId, key: string): any {
+  return key.split('.').reduce((o: any, k) => (o == null ? undefined : o[k]), messages[loc])
 }
 
 export function useI18n() {
-  function t(key, params) {
+  function t(key: string, params?: I18nParams): any {
     let val = _lookup(locale.value, key)
     if (val === undefined) val = _lookup('en', key)
     if (val === undefined) return key
     if (typeof val === 'string' && params) {
-      return val.replace(/\{(\w+)\}/g, (_, k) => (params[k] ?? `{${k}}`))
+      return val.replace(/\{(\w+)\}/g, (_m, k) => (params[k] ?? `{${k}}`))
     }
     return val
   }

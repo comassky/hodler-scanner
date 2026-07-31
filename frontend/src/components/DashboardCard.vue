@@ -1,9 +1,13 @@
-<script setup>
-import { useFormatters } from '../composables/useFormatters.js'
-import { useI18n } from '../composables/useI18n.js'
+<script setup lang="ts">
+import { useFormatters } from '../composables/useFormatters'
+import { useI18n } from '../composables/useI18n'
+import type { DashboardItem } from '../types/analysis'
 
-defineProps({ item: { type: Object, required: true } })
-defineEmits(['analyse', 'remove'])
+defineProps<{ item: DashboardItem }>()
+defineEmits<{
+  analyse: [ticker: string]
+  remove: [ticker: string]
+}>()
 
 const { fmt, fmtPct, varColor, rsiClass, distClass, scoreColorFor } = useFormatters()
 const { t } = useI18n()

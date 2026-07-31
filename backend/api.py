@@ -29,6 +29,7 @@ from news import fetch_news
 from portfolio import build_portfolio
 from search import search_tickers
 from serialization import SafeJSONResponse
+import schemas
 
 
 def _app_version() -> str:
@@ -109,12 +110,17 @@ app.add_middleware(
 )
 
 
+def _ok(model):
+    """Attach a 200 response schema for OpenAPI/type generation (docs only, no runtime validation)."""
+    return {200: {"model": model}}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 
-@app.get("/search", summary="Search tickers by name or symbol", tags=["utils"])
+@app.get("/search", summary="Search tickers by name or symbol", tags=["utils"], responses=_ok(list[schemas.SearchResult]))
 def search(q: str):
     """
     Search Yahoo Finance by company name, ticker symbol or **ISIN**
@@ -123,7 +129,7 @@ def search(q: str):
     return search_tickers(q)
 
 
-@app.get("/ticker/{ticker_code}", summary="Full technical analysis of a ticker")
+@app.get("/ticker/{ticker_code}", summary="Full technical analysis of a ticker", responses=_ok(schemas.Analysis))
 async def get_ticker(ticker_code: str, refresh: bool = False, lang: str = "en"):
     """
     Return all technical indicators + B&H score for a ticker.
@@ -153,25 +159,25 @@ async def get_ticker(ticker_code: str, refresh: bool = False, lang: str = "en"):
     return {**result, "cached": False}
 
 
-@app.get("/ticker/{ticker_code}/chart", summary="Historical data for charts", tags=["analyse"])
+@app.get("/ticker/{ticker_code}/chart", summary="Historical data for charts", tags=["analyse"], responses=_ok(schemas.ChartData))
 def ticker_chart(ticker_code: str, period: str = "1y", refresh: bool = False):
     """Return price, SMA 200/50, RSI 14 and MACD histogram for the charts."""
     return chart_data(ticker_code, period, refresh)
 
 
-@app.get("/ticker/{ticker_code}/fundamentals", summary="Fundamental data", tags=["analyse"])
+@app.get("/ticker/{ticker_code}/fundamentals", summary="Fundamental data", tags=["analyse"], responses=_ok(schemas.Fundamentals))
 def ticker_fundamentals(ticker_code: str, refresh: bool = False):
     """P/E, market cap, sector, country via yfinance.info."""
     return fetch_fundamentals(ticker_code, refresh)
 
 
-@app.get("/ticker/{ticker_code}/news", summary="Recent news", tags=["analyse"])
+@app.get("/ticker/{ticker_code}/news", summary="Recent news", tags=["analyse"], responses=_ok(schemas.News))
 def ticker_news(ticker_code: str, refresh: bool = False):
     """Latest news for the stock via yfinance (Yahoo Finance)."""
     return fetch_news(ticker_code, refresh)
 
 
-@app.get("/ticker/{ticker_code}/backtest", summary="Light score backtest", tags=["analyse"])
+@app.get("/ticker/{ticker_code}/backtest", summary="Light score backtest", tags=["analyse"], responses=_ok(schemas.BacktestReport))
 async def ticker_backtest(ticker_code: str, refresh: bool = False):
     """
     Replay the Buy & Hold score over ~5 years of history and report the realized
@@ -243,25 +249,25 @@ class FavoritesImport(BaseModel):
         return [t.strip().upper() for t in v if t and t.strip()]
 
 
-@app.get("/favorites", summary="List favorites", tags=["favorites"])
+@app.get("/favorites", summary="List favorites", tags=["favorites"], responses=_ok(schemas.FavoritesResponse))
 def favorites_list():
     """Return the watchlist persisted server-side."""
     return {"favorites": db.get_favorites()}
 
 
-@app.put("/favorites", summary="Replace the entire favorites list", tags=["favorites"])
+@app.put("/favorites", summary="Replace the entire favorites list", tags=["favorites"], responses=_ok(schemas.FavoritesResponse))
 def favorites_set(body: FavoritesImport):
     """Fully replace the watchlist (used for import/migration)."""
     return {"favorites": db.set_favorites(body.tickers)}
 
 
-@app.post("/favorites/{ticker_code}", summary="Add a favorite", tags=["favorites"])
+@app.post("/favorites/{ticker_code}", summary="Add a favorite", tags=["favorites"], responses=_ok(schemas.FavoritesResponse))
 def favorites_add(ticker_code: str):
     added = db.add_favorite(ticker_code)
     return {"favorites": db.get_favorites(), "added": added}
 
 
-@app.delete("/favorites/{ticker_code}", summary="Remove a favorite", tags=["favorites"])
+@app.delete("/favorites/{ticker_code}", summary="Remove a favorite", tags=["favorites"], responses=_ok(schemas.FavoritesResponse))
 def favorites_remove(ticker_code: str):
     removed = db.remove_favorite(ticker_code)
     if not removed:
@@ -290,20 +296,20 @@ class PositionBody(BaseModel):
         return v
 
 
-@app.get("/portfolio", summary="Portfolio with live valuation", tags=["portfolio"])
+@app.get("/portfolio", summary="Portfolio with live valuation", tags=["portfolio"], responses=_ok(schemas.Portfolio))
 async def portfolio_get():
     """Return every stored position enriched with its live price, P&L and weight."""
     return await asyncio.to_thread(build_portfolio)
 
 
-@app.put("/portfolio/{ticker_code}", summary="Add or update a position", tags=["portfolio"])
+@app.put("/portfolio/{ticker_code}", summary="Add or update a position", tags=["portfolio"], responses=_ok(schemas.Portfolio))
 async def portfolio_upsert(ticker_code: str, body: PositionBody):
     """Insert or update a position (one aggregated lot per ticker)."""
     db.upsert_position(ticker_code, body.quantity, body.avg_cost, body.note)
     return await asyncio.to_thread(build_portfolio)
 
 
-@app.delete("/portfolio/{ticker_code}", summary="Remove a position", tags=["portfolio"])
+@app.delete("/portfolio/{ticker_code}", summary="Remove a position", tags=["portfolio"], responses=_ok(schemas.Portfolio))
 async def portfolio_remove(ticker_code: str):
     removed = db.remove_position(ticker_code)
     if not removed:

@@ -1,0 +1,2235 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hodler Scanner API",
+    "description": "Buy & Hold technical analysis — SMA, RSI, MACD, Bollinger Bands, scoring",
+    "version": "1.1.1-SNAPSHOT"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": [
+          "utils"
+        ],
+        "summary": "Search tickers by name or symbol",
+        "description": "Search Yahoo Finance by company name, ticker symbol or **ISIN**\n(e.g. `Apple`, `MC.PA`, `FR0000121014`). Fuzzy matching tolerates typos.",
+        "operationId": "search_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchResult"
+                  },
+                  "title": "Response 200 Search Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticker/{ticker_code}": {
+      "get": {
+        "summary": "Full technical analysis of a ticker",
+        "description": "Return all technical indicators + B&H score for a ticker.\n\n**Examples**: `MC.PA`, `AAPL`, `ASML.AS`, `BTC-USD`\n\n- `refresh=true`: force recomputation even if the cache is valid\n- `lang`: language of the analysis text (`en` by default, `fr`)",
+        "operationId": "get_ticker_ticker__ticker_code__get",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Refresh"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "en",
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Analysis"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticker/{ticker_code}/chart": {
+      "get": {
+        "tags": [
+          "analyse"
+        ],
+        "summary": "Historical data for charts",
+        "description": "Return price, SMA 200/50, RSI 14 and MACD histogram for the charts.",
+        "operationId": "ticker_chart_ticker__ticker_code__chart_get",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "1y",
+              "title": "Period"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticker/{ticker_code}/fundamentals": {
+      "get": {
+        "tags": [
+          "analyse"
+        ],
+        "summary": "Fundamental data",
+        "description": "P/E, market cap, sector, country via yfinance.info.",
+        "operationId": "ticker_fundamentals_ticker__ticker_code__fundamentals_get",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fundamentals"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticker/{ticker_code}/news": {
+      "get": {
+        "tags": [
+          "analyse"
+        ],
+        "summary": "Recent news",
+        "description": "Latest news for the stock via yfinance (Yahoo Finance).",
+        "operationId": "ticker_news_ticker__ticker_code__news_get",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/News"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticker/{ticker_code}/backtest": {
+      "get": {
+        "tags": [
+          "analyse"
+        ],
+        "summary": "Light score backtest",
+        "description": "Replay the Buy & Hold score over ~5 years of history and report the realized\nforward returns (≈3M / 6M / 12M) grouped by score band — a credibility check\non the scoring engine.",
+        "operationId": "ticker_backtest_ticker__ticker_code__backtest_get",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacktestReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache": {
+      "get": {
+        "tags": [
+          "cache"
+        ],
+        "summary": "Cache state",
+        "description": "List cached entries with their age and remaining TTL.",
+        "operationId": "cache_info_cache_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "cache"
+        ],
+        "summary": "Clear the entire cache",
+        "operationId": "cache_clear_cache_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cache/{ticker_code}": {
+      "delete": {
+        "tags": [
+          "cache"
+        ],
+        "summary": "Invalidate a ticker",
+        "operationId": "cache_invalidate_cache__ticker_code__delete",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reset": {
+      "post": {
+        "tags": [
+          "cache"
+        ],
+        "summary": "Clear selected caches and DB data",
+        "description": "Selectively wipe in-memory caches and DB rows per data type.\n\nEach flag is opt-in: ``caches`` (in-memory analyses/charts/news…),\n``watchlist`` (favorites), ``portfolio`` (positions), ``backtests``\n(stored score history) and ``tickers`` (the name/ISIN dictionary).",
+        "operationId": "reset_all_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/favorites": {
+      "get": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "List favorites",
+        "description": "Return the watchlist persisted server-side.",
+        "operationId": "favorites_list_favorites_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "Replace the entire favorites list",
+        "description": "Fully replace the watchlist (used for import/migration).",
+        "operationId": "favorites_set_favorites_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FavoritesImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/favorites/{ticker_code}": {
+      "post": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "Add a favorite",
+        "operationId": "favorites_add_favorites__ticker_code__post",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "Remove a favorite",
+        "operationId": "favorites_remove_favorites__ticker_code__delete",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portfolio": {
+      "get": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Portfolio with live valuation",
+        "description": "Return every stored position enriched with its live price, P&L and weight.",
+        "operationId": "portfolio_get_portfolio_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Portfolio"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portfolio/{ticker_code}": {
+      "put": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Add or update a position",
+        "description": "Insert or update a position (one aggregated lot per ticker).",
+        "operationId": "portfolio_upsert_portfolio__ticker_code__put",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Portfolio"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "portfolio"
+        ],
+        "summary": "Remove a position",
+        "operationId": "portfolio_remove_portfolio__ticker_code__delete",
+        "parameters": [
+          {
+            "name": "ticker_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ticker Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Portfolio"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tickers": {
+      "post": {
+        "summary": "Analyze a list of tickers",
+        "description": "Analyze several tickers in parallel.\n\n```json\n{ \"tickers\": [\"MC.PA\", \"ASML.AS\", \"AIR.PA\"], \"refresh\": false, \"lang\": \"en\" }\n```\n\nEach entry in the result contains either the data or an `error` field.",
+        "operationId": "post_tickers_tickers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TickerListRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Analysis": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "data_partiel": {
+            "type": "boolean",
+            "title": "Data Partiel"
+          },
+          "days_available": {
+            "type": "integer",
+            "title": "Days Available"
+          },
+          "price": {
+            "$ref": "#/components/schemas/AnalysisPrice"
+          },
+          "indicators": {
+            "$ref": "#/components/schemas/AnalysisIndicators"
+          },
+          "distances": {
+            "$ref": "#/components/schemas/AnalysisDistances"
+          },
+          "fundamentals": {
+            "$ref": "#/components/schemas/AnalysisFundamentals"
+          },
+          "signals": {
+            "$ref": "#/components/schemas/AnalysisSignals"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisBlock"
+          },
+          "cached": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "name",
+          "timestamp",
+          "data_partiel",
+          "days_available",
+          "price",
+          "indicators",
+          "distances",
+          "fundamentals",
+          "signals",
+          "analysis"
+        ],
+        "title": "Analysis"
+      },
+      "AnalysisBlock": {
+        "properties": {
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "score_details": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Score Details"
+          },
+          "statut": {
+            "type": "string",
+            "title": "Statut"
+          },
+          "synthese": {
+            "$ref": "#/components/schemas/AnalysisSynthese"
+          },
+          "explication": {
+            "type": "string",
+            "title": "Explication"
+          },
+          "strategie": {
+            "type": "string",
+            "title": "Strategie"
+          },
+          "objectifs": {
+            "type": "string",
+            "title": "Objectifs"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/Diagnostic"
+            },
+            "type": "array",
+            "title": "Diagnostics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "score",
+          "score_details",
+          "statut",
+          "synthese",
+          "explication",
+          "strategie",
+          "objectifs",
+          "diagnostics"
+        ],
+        "title": "AnalysisBlock"
+      },
+      "AnalysisDistances": {
+        "properties": {
+          "ecart_sma200_pct": {
+            "type": "number",
+            "title": "Ecart Sma200 Pct"
+          },
+          "ecart_w50_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ecart W50 Pct"
+          },
+          "dist_52w_high_pct": {
+            "type": "number",
+            "title": "Dist 52W High Pct"
+          },
+          "dist_52w_low_pct": {
+            "type": "number",
+            "title": "Dist 52W Low Pct"
+          },
+          "h52w_price": {
+            "type": "number",
+            "title": "H52W Price"
+          },
+          "l52w_price": {
+            "type": "number",
+            "title": "L52W Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ecart_sma200_pct",
+          "dist_52w_high_pct",
+          "dist_52w_low_pct",
+          "h52w_price",
+          "l52w_price"
+        ],
+        "title": "AnalysisDistances"
+      },
+      "AnalysisFundamentals": {
+        "properties": {
+          "dividende_annuel": {
+            "type": "number",
+            "title": "Dividende Annuel"
+          },
+          "derniere_date_div": {
+            "type": "string",
+            "title": "Derniere Date Div"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dividende_annuel",
+          "derniere_date_div"
+        ],
+        "title": "AnalysisFundamentals"
+      },
+      "AnalysisIndicators": {
+        "properties": {
+          "sma200": {
+            "type": "number",
+            "title": "Sma200"
+          },
+          "sma50": {
+            "type": "number",
+            "title": "Sma50"
+          },
+          "w50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "W50"
+          },
+          "sma200_slope_20j_pct": {
+            "type": "number",
+            "title": "Sma200 Slope 20J Pct"
+          },
+          "rsi_daily": {
+            "type": "number",
+            "title": "Rsi Daily"
+          },
+          "rsi_weekly": {
+            "type": "number",
+            "title": "Rsi Weekly"
+          },
+          "rvol": {
+            "type": "number",
+            "title": "Rvol"
+          },
+          "bb_pct": {
+            "type": "number",
+            "title": "Bb Pct"
+          },
+          "macd_w_hist": {
+            "type": "number",
+            "title": "Macd W Hist"
+          },
+          "macd_w_hist_prev": {
+            "type": "number",
+            "title": "Macd W Hist Prev"
+          },
+          "macd_w_cross_up": {
+            "type": "boolean",
+            "title": "Macd W Cross Up"
+          },
+          "atr14": {
+            "type": "number",
+            "title": "Atr14"
+          },
+          "atr14_pct": {
+            "type": "number",
+            "title": "Atr14 Pct"
+          },
+          "adx14": {
+            "type": "number",
+            "title": "Adx14"
+          },
+          "chop14": {
+            "type": "number",
+            "title": "Chop14"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sma200",
+          "sma50",
+          "sma200_slope_20j_pct",
+          "rsi_daily",
+          "rsi_weekly",
+          "rvol",
+          "bb_pct",
+          "macd_w_hist",
+          "macd_w_hist_prev",
+          "macd_w_cross_up",
+          "atr14",
+          "atr14_pct",
+          "adx14",
+          "chop14"
+        ],
+        "title": "AnalysisIndicators"
+      },
+      "AnalysisPrice": {
+        "properties": {
+          "last": {
+            "type": "number",
+            "title": "Last"
+          },
+          "var_jour_pct": {
+            "type": "number",
+            "title": "Var Jour Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "last",
+          "var_jour_pct"
+        ],
+        "title": "AnalysisPrice"
+      },
+      "AnalysisSignals": {
+        "properties": {
+          "tendance": {
+            "type": "string",
+            "title": "Tendance"
+          },
+          "regime": {
+            "$ref": "#/components/schemas/MarketRegime"
+          },
+          "alerte_sma200": {
+            "type": "boolean",
+            "title": "Alerte Sma200"
+          },
+          "alerte_w50": {
+            "type": "boolean",
+            "title": "Alerte W50"
+          },
+          "divergence_rsi": {
+            "type": "boolean",
+            "title": "Divergence Rsi"
+          },
+          "rsi_creux": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rsi Creux"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tendance",
+          "regime",
+          "alerte_sma200",
+          "alerte_w50",
+          "divergence_rsi"
+        ],
+        "title": "AnalysisSignals"
+      },
+      "AnalysisSynthese": {
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          },
+          "atout": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atout"
+          },
+          "risque": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risque"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict"
+        ],
+        "title": "AnalysisSynthese"
+      },
+      "BacktestReport": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "period_start": {
+            "type": "string",
+            "title": "Period Start"
+          },
+          "period_end": {
+            "type": "string",
+            "title": "Period End"
+          },
+          "samples": {
+            "type": "integer",
+            "title": "Samples"
+          },
+          "horizons_days": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Horizons Days"
+          },
+          "primary_horizon": {
+            "type": "integer",
+            "title": "Primary Horizon"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/BacktestSeriesPoint"
+            },
+            "type": "array",
+            "title": "Series"
+          },
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreBand"
+            },
+            "type": "array",
+            "title": "Bands"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/Baseline"
+          },
+          "correlation": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Correlation"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/Timing"
+          },
+          "cached": {
+            "type": "boolean",
+            "title": "Cached"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "name",
+          "period_start",
+          "period_end",
+          "samples",
+          "horizons_days",
+          "primary_horizon",
+          "series",
+          "bands",
+          "baseline",
+          "correlation",
+          "timing",
+          "cached"
+        ],
+        "title": "BacktestReport"
+      },
+      "BacktestSeriesPoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "sma200": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sma200"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "price"
+        ],
+        "title": "BacktestSeriesPoint"
+      },
+      "BandKey": {
+        "type": "string",
+        "enum": [
+          "strong",
+          "accumulate",
+          "watch",
+          "avoid"
+        ],
+        "title": "BandKey"
+      },
+      "Baseline": {
+        "properties": {
+          "avg_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Return"
+          },
+          "win_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Rate"
+          },
+          "by_horizon": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HorizonStats"
+            },
+            "type": "object",
+            "title": "By Horizon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "by_horizon"
+        ],
+        "title": "Baseline"
+      },
+      "ChartData": {
+        "properties": {
+          "dates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dates"
+          },
+          "close": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Close"
+          },
+          "sma200": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Sma200"
+          },
+          "sma50": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Sma50"
+          },
+          "rsi": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Rsi"
+          },
+          "macd_hist": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Macd Hist"
+          },
+          "volume": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Volume"
+          },
+          "vol_sma20": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Vol Sma20"
+          },
+          "bb_upper": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Bb Upper"
+          },
+          "bb_lower": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Bb Lower"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dates",
+          "close",
+          "sma200",
+          "sma50",
+          "rsi",
+          "macd_hist",
+          "volume",
+          "vol_sma20",
+          "bb_upper",
+          "bb_lower"
+        ],
+        "title": "ChartData"
+      },
+      "Diagnostic": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "impact": {
+            "type": "number",
+            "title": "Impact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "impact"
+        ],
+        "title": "Diagnostic"
+      },
+      "FavoritesImport": {
+        "properties": {
+          "tickers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tickers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tickers"
+        ],
+        "title": "FavoritesImport"
+      },
+      "FavoritesResponse": {
+        "properties": {
+          "favorites": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Favorites"
+          },
+          "added": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added"
+          },
+          "removed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "favorites"
+        ],
+        "title": "FavoritesResponse"
+      },
+      "Fundamentals": {
+        "properties": {
+          "pe_trailing": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pe Trailing"
+          },
+          "pe_forward": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pe Forward"
+          },
+          "market_cap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Cap"
+          },
+          "sector": {
+            "type": "string",
+            "title": "Sector"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "employees": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employees"
+          },
+          "earnings_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earnings Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sector",
+          "industry",
+          "country"
+        ],
+        "title": "Fundamentals"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HorizonStats": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "avg_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Return"
+          },
+          "median_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Return"
+          },
+          "win_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count"
+        ],
+        "title": "HorizonStats"
+      },
+      "MarketRegime": {
+        "type": "string",
+        "enum": [
+          "trend_up",
+          "trend_down",
+          "range",
+          "transition"
+        ],
+        "title": "MarketRegime"
+      },
+      "News": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NewsItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "count",
+          "items"
+        ],
+        "title": "News"
+      },
+      "NewsItem": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "publisher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publisher"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "published": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published"
+          },
+          "thumbnail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "url"
+        ],
+        "title": "NewsItem"
+      },
+      "Portfolio": {
+        "properties": {
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/Position"
+            },
+            "type": "array",
+            "title": "Positions"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/PortfolioTotals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "positions",
+          "totals"
+        ],
+        "title": "Portfolio"
+      },
+      "PortfolioTotals": {
+        "properties": {
+          "cost": {
+            "type": "number",
+            "title": "Cost"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "pnl": {
+            "type": "number",
+            "title": "Pnl"
+          },
+          "pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Pct"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "priced": {
+            "type": "boolean",
+            "title": "Priced"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cost",
+          "value",
+          "pnl",
+          "count",
+          "priced"
+        ],
+        "title": "PortfolioTotals"
+      },
+      "Position": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "avg_cost": {
+            "type": "number",
+            "title": "Avg Cost"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "pnl": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl"
+          },
+          "pnl_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pnl Pct"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "name",
+          "quantity",
+          "avg_cost",
+          "cost"
+        ],
+        "title": "Position"
+      },
+      "PositionBody": {
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "avg_cost": {
+            "type": "number",
+            "title": "Avg Cost"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quantity",
+          "avg_cost"
+        ],
+        "title": "PositionBody"
+      },
+      "ResetBody": {
+        "properties": {
+          "caches": {
+            "type": "boolean",
+            "title": "Caches",
+            "default": false
+          },
+          "watchlist": {
+            "type": "boolean",
+            "title": "Watchlist",
+            "default": false
+          },
+          "portfolio": {
+            "type": "boolean",
+            "title": "Portfolio",
+            "default": false
+          },
+          "backtests": {
+            "type": "boolean",
+            "title": "Backtests",
+            "default": false
+          },
+          "tickers": {
+            "type": "boolean",
+            "title": "Tickers",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ResetBody"
+      },
+      "ScoreBand": {
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/BandKey"
+          },
+          "min": {
+            "type": "number",
+            "title": "Min"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "avg_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Return"
+          },
+          "median_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Return"
+          },
+          "win_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Win Rate"
+          },
+          "by_horizon": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HorizonStats"
+            },
+            "type": "object",
+            "title": "By Horizon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "min",
+          "count",
+          "by_horizon"
+        ],
+        "title": "ScoreBand"
+      },
+      "SearchResult": {
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "title": "Ticker"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "exchange": {
+            "type": "string",
+            "title": "Exchange"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticker",
+          "name",
+          "type",
+          "exchange"
+        ],
+        "title": "SearchResult"
+      },
+      "TickerListRequest": {
+        "properties": {
+          "tickers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tickers"
+          },
+          "refresh": {
+            "type": "boolean",
+            "title": "Refresh",
+            "default": false
+          },
+          "lang": {
+            "type": "string",
+            "title": "Lang",
+            "default": "en"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tickers"
+        ],
+        "title": "TickerListRequest"
+      },
+      "Timing": {
+        "properties": {
+          "current_score": {
+            "type": "number",
+            "title": "Current Score"
+          },
+          "percentile": {
+            "type": "number",
+            "title": "Percentile"
+          },
+          "band": {
+            "$ref": "#/components/schemas/BandKey"
+          },
+          "edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edge"
+          },
+          "engine_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Edge"
+          },
+          "correlation": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation"
+          },
+          "horizon": {
+            "type": "integer",
+            "title": "Horizon"
+          },
+          "reliable": {
+            "type": "boolean",
+            "title": "Reliable"
+          },
+          "level": {
+            "$ref": "#/components/schemas/TimingLevel"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current_score",
+          "percentile",
+          "band",
+          "horizon",
+          "reliable",
+          "level"
+        ],
+        "title": "Timing"
+      },
+      "TimingLevel": {
+        "type": "string",
+        "enum": [
+          "excellent",
+          "good",
+          "fair",
+          "poor",
+          "unreliable"
+        ],
+        "title": "TimingLevel"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

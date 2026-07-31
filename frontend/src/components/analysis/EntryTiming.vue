@@ -1,23 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from '../../composables/useI18n.js'
+import { useI18n } from '../../composables/useI18n'
+import type { BacktestReport } from '../../types/backtest'
 
 const { t } = useI18n()
 
-const props = defineProps({
-  data:    { type: Object,  default: null },
-  loading: { type: Boolean, default: false },
-})
+const props = defineProps<{
+  data?: BacktestReport | null
+  loading?: boolean
+}>()
 
 const timing = computed(() => props.data?.timing ?? null)
 
 // Trading days → short horizon label (mirror of BacktestPanel).
 const horizonLabel = computed(() => {
-  const map = { 63: '3M', 126: '6M', 252: '12M' }
-  return map[timing.value?.horizon] ?? `${timing.value?.horizon ?? ''}d`
+  const map: Record<number, string> = { 63: '3M', 126: '6M', 252: '12M' }
+  const h = timing.value?.horizon
+  return (h != null && map[h]) || `${h ?? ''}d`
 })
 
-const pct = (v) => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(2) + '%')
+const pct = (v: number | null | undefined) => (v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(2) + '%')
 
 // Level → visual style + icon.
 const LEVELS = {
@@ -27,7 +29,7 @@ const LEVELS = {
   poor:       { ring: 'bg-zinc-700/20 border-zinc-600/50',       dot: 'text-zinc-300',    icon: 'wait' },
   unreliable: { ring: 'bg-zinc-700/20 border-zinc-600/50',       dot: 'text-zinc-400',    icon: 'question' },
 }
-const style = computed(() => LEVELS[timing.value?.level] ?? LEVELS.unreliable)
+const style = computed(() => LEVELS[timing.value?.level ?? 'unreliable'] ?? LEVELS.unreliable)
 
 const edgeColor = computed(() => {
   const e = timing.value?.edge

@@ -1,19 +1,20 @@
-<script setup>
-import { useI18n } from '../composables/useI18n.js'
+<script setup lang="ts">
+import { useI18n } from '../composables/useI18n'
 import InfoTip from './InfoTip.vue'
+import type { NewsItem } from '../types/market'
 
-defineProps({
-  items:       { type: Array,   default: () => [] },
-  loading:     { type: Boolean, default: false },
-  unavailable: { type: Boolean, default: false },
-})
+defineProps<{
+  items?: NewsItem[]
+  loading?: boolean
+  unavailable?: boolean
+}>()
 const { t, locale } = useI18n()
 
 // Relative "x minutes ago" label, localized.
-function timeAgo(iso) {
+function timeAgo(iso?: string | null) {
   if (!iso) return ''
   const d = new Date(iso)
-  if (isNaN(d)) return ''
+  if (isNaN(d.getTime())) return ''
   const s = Math.floor((Date.now() - d.getTime()) / 1000)
   const rtf = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' })
   if (s < 60) return rtf.format(-s, 'second')

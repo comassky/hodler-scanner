@@ -1,21 +1,22 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import Chart from 'chart.js/auto'
+import { Chart } from '../lib/chart'
 import InfoTip from './InfoTip.vue'
-import { useTheme } from '../composables/useTheme.js'
-import { useI18n } from '../composables/useI18n.js'
+import { useTheme } from '../composables/useTheme'
+import { useI18n } from '../composables/useI18n'
+import type { BacktestReport, BandKey } from '../types/backtest'
 
 const { theme } = useTheme()
 const { t, locale } = useI18n()
 
-const props = defineProps({
-  data:    { type: Object,  default: null },
-  loading: { type: Boolean, default: false },
-  error:   { type: String,  default: null },
-})
+const props = defineProps<{
+  data?: BacktestReport | null
+  loading?: boolean
+  error?: string | null
+}>()
 
 // ── Horizon selector (trading days → ≈ months label) ────────
-const HORIZON_LABELS = { 63: '3M', 126: '6M', 252: '12M' }
+const HORIZON_LABELS: Record<string, string> = { 63: '3M', 126: '6M', 252: '12M' }
 const horizon = ref('126')
 const horizons = computed(() => props.data?.horizons_days ?? [63, 126, 252])
 watch(() => props.data, v => {
@@ -23,7 +24,7 @@ watch(() => props.data, v => {
 })
 
 // ── Band presentation (aligned with the score status colors) ──────
-const BANDS = {
+const BANDS: Record<BandKey, { color: string; label: () => string }> = {
   strong:     { color: '#34d399', label: () => t('backtest.bandStrong') },
   accumulate: { color: '#38bdf8', label: () => t('backtest.bandAccumulate') },
   watch:      { color: '#fbbf24', label: () => t('backtest.bandWatch') },
@@ -31,23 +32,26 @@ const BANDS = {
 }
 
 // Score → decision band (thresholds mirror the backend _BANDS: 80 / 60 / 40).
-function bandForScore(s) {
+function bandForScore(s: number | null | undefined): BandKey | null {
   if (s == null) return null
   if (s >= 80) return 'strong'
   if (s >= 60) return 'accumulate'
   if (s >= 40) return 'watch'
   return 'avoid'
 }
-const scoreColor = (s) => BANDS[bandForScore(s)]?.color ?? '#818cf8'
+const scoreColor = (s: number | null | undefined) => {
+  const k = bandForScore(s)
+  return k ? BANDS[k].color : '#818cf8'
+}
 
 // Legend chips explaining the score line color code.
 const bandLegend = computed(() =>
-  ['strong', 'accumulate', 'watch', 'avoid'].map(k => ({
+  (['strong', 'accumulate', 'watch', 'avoid'] as BandKey[]).map(k => ({
     key: k, color: BANDS[k].color, label: BANDS[k].label(),
   }))
 )
 
-function pct(v) {
+function pct(v: number | null | undefined) {
   if (v == null) return '—'
   return (v > 0 ? '+' : '') + v.toFixed(2) + '%'
 }
@@ -71,7 +75,13 @@ const summary = computed(() => {
 // What matters is NOT whether returns are positive (a rising asset is positive
 // almost everywhere) but whether buying on the actionable "buy" bands
 // (Strong + Accumulate) beat buying at *any* random time (the baseline).
-const verdict = computed(() => {
+interface Verdict {
+  tone: 'good' | 'bad' | 'neutral' | 'nodata'
+  delta?: number
+  buyReturn?: number
+  base?: number
+}
+const verdict = computed<Verdict | null>(() => {
   const d = props.data
   if (!d) return null
   const h = horizon.value
@@ -92,7 +102,7 @@ const verdict = computed(() => {
   return { tone, delta, buyReturn, base }
 })
 
-const VERDICT_STYLES = {
+const VERDICT_STYLES: Record<Verdict['tone'], string> = {
   good:    'bg-emerald-500/10 border-emerald-500/30 text-emerald-300',
   neutral: 'bg-amber-500/10 border-amber-500/30 text-amber-300',
   bad:     'bg-red-500/10 border-red-500/30 text-red-300',
@@ -108,12 +118,12 @@ const verdictMessage = computed(() => {
 })
 
 // ── Charts ────────────────────────────────────────────────────────
-const barCanvas = ref(null)
-const lineCanvas = ref(null)
-let barChart = null
-let lineChart = null
+const barCanvas = ref<HTMLCanvasElement | null>(null)
+const lineCanvas = ref<HTMLCanvasElement | null>(null)
+let barChart: Chart | null = null
+let lineChart: Chart | null = null
 
-function cssVar(name, fallback) {
+function cssVar(name: string, fallback: string) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   return v || fallback
 }

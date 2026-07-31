@@ -1,19 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
+import type { InfoTipLevel } from '../types/ui'
 
-const props = defineProps({
-  // Simple content (backward-compatible)
-  text:    { type: String, default: '' },
-  // Structured content (optional)
-  title:   { type: String, default: '' },
-  formula: { type: String, default: '' },
-  levels:  { type: Array,  default: () => [] },   // [{ range, label, tone }]
-  tip:     { type: String, default: '' },
-})
+const props = defineProps<{
+  text?: string
+  title?: string
+  formula?: string
+  levels?: InfoTipLevel[]
+  tip?: string
+}>()
 
 const show = ref(false)
 const shift = ref(0)
-const btnRef = ref(null)
+const btnRef = ref<HTMLElement | null>(null)
 
 // Reposition the bubble horizontally so it stays within the viewport
 function updatePos() {
@@ -39,7 +38,7 @@ const TONE = {
 }
 
 const structured = computed(() =>
-  Boolean(props.title || props.formula || props.levels.length || props.tip)
+  Boolean(props.title || props.formula || props.levels?.length || props.tip)
 )
 </script>
 
