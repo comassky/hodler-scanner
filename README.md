@@ -444,7 +444,7 @@ Vue 3 SPA (`<script setup lang="ts">`, fully **TypeScript**) located in [`fronte
 - `analysis/StrategyBacktest` — score-timed exposure vs buy &amp; hold equity curve with an adjustable threshold (CAGR, max drawdown, exposure)
 - `NewsList` — recent news feed (publisher, date, thumbnail) for the analyzed ticker, with skeleton loading and inline empty/unavailable states
 - `InfoTip` — structured educational tooltips (title, formula, colored scale, tip)
-- `AppHeader` — header (nav tabs, recent tickers, quick-search shortcut, theme & language switchers, data-reset button)
+- `AppHeader` — header (nav tabs, recent tickers, quick-search shortcut, theme & language switchers, data-reset button); on mobile the theme/language/reset controls collapse behind a gear menu and the recent tickers are hidden
 
 **Composables** (`src/composables/`)
 - `useTickerAnalysis` — data layer: active ticker + TanStack queries (analysis, chart, fundamentals, news, backtest) and the search action
@@ -462,6 +462,8 @@ Vue 3 SPA (`<script setup lang="ts">`, fully **TypeScript**) located in [`fronte
 **Persistence** (localStorage): `smm_history`, `smm_watchlist`, `smm_theme`, `smm_locale`, `smm_dash_sort`, `smm_analysis_tab`.
 
 **Data fetching**: [TanStack Vue Query](https://tanstack.com/query) manages server state (caching, retries, background refetch) with a 60 s stale time; [VueUse](https://vueuse.org/) provides reactive browser utilities.
+
+**Responsive**: the UI is fully responsive down to small phones — Tailwind breakpoints drive fluid grids (dashboard cards, fundamentals, stats), horizontally scrollable tables and tab bars, wrapping chart toolbars, and the collapsing header described above.
 
 **Theming**: Tailwind v4 compiles utilities into CSS variables (`--color-zinc-*`), overridden under `[data-theme="light"]` for **runtime** re-theming, including chart re-coloring (CSS variables read at render time).
 
