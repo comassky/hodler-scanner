@@ -8,6 +8,7 @@ dedicated modules: analysis, charts, fundamentals, news, search, market_data,
 cache and serialization.
 """
 import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -26,6 +27,29 @@ from market_data import download_batch
 from news import fetch_news
 from search import search_tickers
 from serialization import SafeJSONResponse
+
+
+def _app_version() -> str:
+    """Resolve the app version (single source of truth: frontend/package.json).
+
+    Order: APP_VERSION env → sibling VERSION file (baked in the image) →
+    frontend/package.json (local dev) → fallback.
+    """
+    env = os.getenv("APP_VERSION")
+    if env:
+        return env
+    here = os.path.dirname(__file__)
+    try:
+        with open(os.path.join(here, "VERSION"), encoding="utf-8") as f:
+            if (v := f.read().strip()):
+                return v
+    except OSError:
+        pass
+    try:
+        with open(os.path.join(here, "..", "frontend", "package.json"), encoding="utf-8") as f:
+            return json.load(f).get("version") or "0.0.0-dev"
+    except (OSError, ValueError):
+        return "0.0.0-dev"
 
 
 # ── Pre-warm at startup ──────────────────────────────────────────
@@ -70,7 +94,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title="Hodler Scanner API",
     description="Buy & Hold technical analysis — SMA, RSI, MACD, Bollinger Bands, scoring",
-    version="1.0.0",
+    version=_app_version(),
     lifespan=lifespan,
     default_response_class=SafeJSONResponse,
 )
