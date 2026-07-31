@@ -148,10 +148,10 @@ flowchart LR
     YF[("Yahoo Finance<br/>via yfinance")]
     VOL[["💾 ./data volume<br/>hodler.db"]]
 
-    VUE -- \"GET /ticker/… /chart /fundamentals /news\" --> API
-    VUE -- \"GET/PUT/POST/DELETE /favorites\" --> API
-    VUE -- \"GET/PUT/DELETE /portfolio\" --> API
-    VUE -- \"POST /reset\" --> API
+    VUE -- "GET /ticker/… /chart /fundamentals /news" --> API
+    VUE -- "GET/PUT/POST/DELETE /favorites" --> API
+    VUE -- "GET/PUT/DELETE /portfolio" --> API
+    VUE -- "POST /reset" --> API
     API --> CACHE
     API --> I18N
     API -- "favorites · portfolio · ticker names" --> DB
