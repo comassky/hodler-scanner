@@ -25,7 +25,7 @@ const localInput = ref(props.modelValue ?? '')
 
 const rootRef   = ref<HTMLElement | null>(null)
 const acIdx     = ref(-1)
-const dismissed = ref(false)   // true once the user picked/closed the dropdown
+const dismissed = ref(true)    // closed until the user types (prefilled value must not open it)
 const typing    = ref(false)   // true only after a real keystroke
 
 // A programmatic value change (dashboard navigation, history) must not open
