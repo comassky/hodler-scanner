@@ -24,8 +24,10 @@ const dismissed = ref(false)   // true once the user picked/closed the dropdown
 const typing    = ref(false)   // true only after a real keystroke
 
 // A programmatic value change (dashboard navigation, history) must not open
-// the autocomplete dropdown — only real typing does.
+// the autocomplete dropdown — only real typing does. Our own input events echo
+// back through modelValue with the same value, so we ignore those.
 watch(() => props.modelValue, v => {
+  if (v === localInput.value) return   // echo of our own keystroke → keep dropdown state
   localInput.value = v
   typing.value = false
   dismissed.value = true
@@ -93,6 +95,7 @@ function onInput(e) {
 function pickAc(ticker) {
   localInput.value = ticker
   emit('update:modelValue', ticker)
+  typing.value    = false
   dismissed.value = true
   acIdx.value     = -1
   emit('search', ticker)
@@ -118,6 +121,7 @@ function onKeydown(e) {
 function submit() {
   const code = localInput.value.trim().toUpperCase()
   if (!code) return
+  typing.value    = false
   dismissed.value = true
   emit('search', code)
 }

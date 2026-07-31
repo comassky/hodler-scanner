@@ -14,7 +14,7 @@ const { t, locale } = useI18n()
 const props = defineProps({
   data:    { type: Object,  default: null },
   loading: { type: Boolean, default: false },
-  period:  { type: String,  default: '1y' },
+  period:  { type: String,  default: '6mo' },
 })
 defineEmits(['update:period'])
 
