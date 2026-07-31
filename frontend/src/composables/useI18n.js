@@ -23,8 +23,9 @@ const messages = {
       themeDark: 'Dark', themeGray: 'Gray', themeLight: 'Light',
     },
     search: {
-      placeholder: 'Ticker or company name… (LVMH, Apple, MC.PA, NVDA)',
+      placeholder: 'Ticker, name or ISIN… (LVMH, Apple, MC.PA, FR0000121014)',
       analyzing: 'Analyzing…', analyze: 'Analyze →', popular: 'Popular:',
+      searching: 'Searching…', noResults: 'No matching ticker',
     },
     app: {
       title: 'Technical analysis',
@@ -66,10 +67,15 @@ const messages = {
       rsiDaily: 'Daily RSI', rsiWeekly: 'Weekly RSI', bbPct: 'Bollinger %B',
       rvol: 'Relative volume', macdWeekly: 'Weekly MACD (hist.)',
       smaSlope: 'SMA 200 slope (20d)', atr14: 'ATR 14 (volatility)',
+      adx14: 'ADX 14 (trend strength)', chop14: 'Choppiness 14',
       oversold: 'oversold', overbought: 'overbought', neutral: 'neutral',
       crossUp: 'Cross ↑',
       sma200d: 'SMA 200 days', sma50w: 'SMA 50 weeks', sma50d: 'SMA 50 days',
       high52: '52-week high', low52: '52-week low',
+    },
+    regime: {
+      label: 'Regime', trend_up: 'Uptrend', trend_down: 'Downtrend',
+      range: 'Range', transition: 'Transition',
     },
     fund: {
       marketCap: 'Market cap', peTtm: 'P/E (ttm)', peForward: 'P/E forward',
@@ -188,6 +194,33 @@ const messages = {
           { range: 'high', label: 'large swings, increased risk', tone: 'warn' },
         ],
         tip: 'Suggested stop ≈ price − 1.5 × ATR.',
+      },
+      adx14: {
+        title: 'ADX 14 — trend strength',
+        text: 'How strong the current trend is, regardless of its direction (up or down).',
+        formula: 'Wilder smoothing of the Directional Index (DX) over 14d',
+        levels: [
+          { range: '< 20', label: 'no trend, ranging market', tone: 'neutral' },
+          { range: '20–25', label: 'trend forming', tone: 'neutral' },
+          { range: '> 25', label: 'established trend', tone: 'good' },
+        ],
+        tip: 'ADX rising above 25 = the trend is gaining traction.',
+      },
+      chop14: {
+        title: 'Choppiness Index 14',
+        text: 'Is the market trending cleanly or chopping sideways? Bounded 0–100.',
+        formula: '100 × log10(ΣTR ÷ range) ÷ log10(14) over 14d',
+        levels: [
+          { range: '> 61.8', label: 'consolidation / range', tone: 'neutral' },
+          { range: '38.2–61.8', label: 'transition', tone: 'neutral' },
+          { range: '< 38.2', label: 'strong directional trend', tone: 'good' },
+        ],
+        tip: 'High = range (fade the extremes); low = trend (follow it).',
+      },
+      regime: {
+        title: 'Market regime',
+        text: 'A read of the context combining ADX (trend strength) and the Choppiness Index (range vs trend). It tells you whether RSI signals should be played as mean-reversion (range) or trend-following (trend).',
+        tip: 'Range: RSI oversold = rebound. Trend: don\u2019t fade the move.',
       },
       keyLevels: {
         title: 'Key levels',
@@ -343,8 +376,9 @@ const messages = {
       themeDark: 'Noir', themeGray: 'Gris', themeLight: 'Clair',
     },
     search: {
-      placeholder: 'Ticker ou nom d\u2019entreprise… (LVMH, Apple, MC.PA, NVDA)',
+      placeholder: 'Ticker, nom ou ISIN… (LVMH, Apple, MC.PA, FR0000121014)',
       analyzing: 'Analyse…', analyze: 'Analyser →', popular: 'Populaires :',
+      searching: 'Recherche…', noResults: 'Aucun ticker correspondant',
     },
     app: {
       title: 'Analyse technique',
@@ -386,10 +420,15 @@ const messages = {
       rsiDaily: 'RSI Journalier', rsiWeekly: 'RSI Hebdomadaire', bbPct: 'Bollinger %B',
       rvol: 'Volume relatif', macdWeekly: 'MACD Hebdo (hist.)',
       smaSlope: 'Pente SMA 200 (20j)', atr14: 'ATR 14 (volatilité)',
+      adx14: 'ADX 14 (force de tendance)', chop14: 'Choppiness (14)',
       oversold: 'survendu', overbought: 'suracheté', neutral: 'neutre',
       crossUp: 'Cross ↑',
       sma200d: 'SMA 200 jours', sma50w: 'SMA 50 semaines', sma50d: 'SMA 50 jours',
       high52: 'Plus haut 52 sem.', low52: 'Plus bas 52 sem.',
+    },
+    regime: {
+      label: 'Régime', trend_up: 'Haussier', trend_down: 'Baissier',
+      range: 'Latéral', transition: 'Transition',
     },
     fund: {
       marketCap: 'Capitalisation', peTtm: 'P/E (ttm)', peForward: 'P/E forward',
@@ -508,6 +547,33 @@ const messages = {
           { range: 'élevé', label: 'fortes amplitudes, risque accru', tone: 'warn' },
         ],
         tip: 'Stop conseillé ≈ cours − 1.5 × ATR.',
+      },
+      adx14: {
+        title: 'ADX 14 — force de tendance',
+        text: 'À quel point la tendance actuelle est forte, indépendamment de sa direction (hausse ou baisse).',
+        formula: 'Lissage de Wilder de l\u2019indice directionnel (DX) sur 14j',
+        levels: [
+          { range: '< 20', label: 'pas de tendance, marché en range', tone: 'neutral' },
+          { range: '20–25', label: 'tendance en formation', tone: 'neutral' },
+          { range: '> 25', label: 'tendance établie', tone: 'good' },
+        ],
+        tip: 'ADX qui passe au-dessus de 25 = la tendance prend de la force.',
+      },
+      chop14: {
+        title: 'Choppiness Index 14',
+        text: 'Le marché tend-il proprement ou hésite-t-il latéralement ? Borné 0–100.',
+        formula: '100 × log10(ΣTR ÷ amplitude) ÷ log10(14) sur 14j',
+        levels: [
+          { range: '> 61.8', label: 'consolidation / range', tone: 'neutral' },
+          { range: '38.2–61.8', label: 'transition', tone: 'neutral' },
+          { range: '< 38.2', label: 'tendance directionnelle forte', tone: 'good' },
+        ],
+        tip: 'Élevé = range (fader les extrêmes) ; bas = tendance (la suivre).',
+      },
+      regime: {
+        title: 'Régime de marché',
+        text: 'Une lecture du contexte combinant l\u2019ADX (force de tendance) et le Choppiness Index (range vs tendance). Il indique si les signaux RSI doivent se jouer en retour à la moyenne (range) ou en suivi de tendance (trend).',
+        tip: 'Range : RSI survendu = rebond. Tendance : ne pas fader le mouvement.',
       },
       keyLevels: {
         title: 'Niveaux clés',

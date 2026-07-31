@@ -27,9 +27,16 @@ export function useFormatters() {
     ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30'
     : 'bg-red-500/10 text-red-400 ring-1 ring-red-500/30'
 
+  const regimeBadgeClass = code => ({
+    trend_up:   'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30',
+    trend_down: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/30',
+    range:      'bg-sky-500/10 text-sky-400 ring-1 ring-sky-500/30',
+    transition: 'bg-zinc-700/30 text-zinc-400 ring-1 ring-zinc-600/40',
+  }[code] || 'bg-zinc-700/30 text-zinc-400 ring-1 ring-zinc-600/40')
+
   return {
     fmt, fmtPct,
     varColor, rsiClass, rsiBarClass, distClass, macdClass,
-    scoreCompClass, scoreColorFor, tendanceBadgeClass,
+    scoreCompClass, scoreColorFor, tendanceBadgeClass, regimeBadgeClass,
   }
 }
