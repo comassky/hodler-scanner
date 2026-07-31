@@ -12,6 +12,7 @@
   <img alt="Python"       src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="FastAPI"      src="https://img.shields.io/badge/FastAPI-0.111+-009688?style=flat-square&logo=fastapi&logoColor=white">
   <img alt="Vue.js"       src="https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white">
+  <img alt="TypeScript"   src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="Vite"         src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white">
   <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white">
   <img alt="Chart.js"     src="https://img.shields.io/badge/Chart.js-4.4-FF6384?style=flat-square&logo=chartdotjs&logoColor=white">
@@ -174,17 +175,17 @@ Two frontend serving modes are provided:
 | Layer | Technologies |
 |-------|--------------|
 | 📥 **Data** | [`yfinance`](https://github.com/ranaroussi/yfinance) (OHLCV + dividends, 500 sessions) |
-| 🧮 **Compute** | Python 3.14, `pandas ≥ 2.0`, `numpy ≥ 1.26` (vectorized indicators) |
-| 🌐 **API** | FastAPI ≥ 0.111, Uvicorn (ASGI), Pydantic (validation) |
+| 🧮 **Compute** | Python 3.14, `pandas ≥ 3.0`, `numpy ≥ 2.5` (vectorized indicators) |
+| 🌐 **API** | FastAPI ≥ 0.140, Uvicorn (ASGI), Pydantic v2 (response schemas), `cachetools` (TTL caches) |
 | 🌍 **i18n** | Backend JSON language files (`backend/locales/en.json`, `backend/locales/fr.json`) loaded by `backend/i18n.py` |
-| 🖼️ **Frontend** | Vue 3.5, Vite 8, Tailwind CSS v4, Chart.js 4.4 + `chartjs-plugin-zoom`, TanStack Vue Query, VueUse |
+| 🖼️ **Frontend** | Vue 3.5 + **TypeScript**, Vite 8, Tailwind CSS v4, Chart.js 4.5 + `chartjs-plugin-zoom` (tree-shaken, lazy-loaded), TanStack Vue Query, VueUse, `ofetch`; API types generated from the backend OpenAPI via `openapi-typescript` |
 | 🐳 **Containerization** | Docker multi-stage, Docker Compose |
 
 ---
 
 ## 🔬 The financial analysis engine
 
-The backend is split into a **thin routing layer** ([`backend/api.py`](backend/api.py), FastAPI routes only) and dedicated **business-logic modules**: `analysis.py` (technical analysis), `charts.py`, `fundamentals.py`, `news.py`, `search.py`, `market_data.py` (yfinance downloads), `cache.py` (TTL caches) and `serialization.py`.
+The backend is split into a **thin routing layer** ([`backend/api.py`](backend/api.py), FastAPI routes only) and dedicated **business-logic modules**: `analysis.py` (technical analysis), `charts.py`, `fundamentals.py`, `news.py`, `search.py`, `market_data.py` (yfinance downloads), `cache.py` (TTL caches) and `serialization.py`. Response shapes are declared as **Pydantic v2 models** in [`backend/schemas.py`](backend/schemas.py) (documented in the OpenAPI schema), which [`backend/export_openapi.py`](backend/export_openapi.py) dumps to `backend/openapi.json` — the single source of truth for the frontend's generated TypeScript types.
 
 The scoring intelligence lives in [`backend/script.py`](backend/script.py) — in particular the `generer_analyse_investisseur_lt(item, lang)` function. Indicators are pre-computed in `analyse_ticker()` of [`backend/analysis.py`](backend/analysis.py) from **500 daily sessions** (auto_adjust disabled, dividends included).
 
@@ -428,7 +429,7 @@ Default base URL: `http://localhost:8000` — interactive documentation at **`/d
 
 ## 🎨 Frontend
 
-Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
+Vue 3 SPA (`<script setup lang="ts">`, fully **TypeScript**) located in [`frontend/`](frontend/), organized in clean layers: **types → services → composables → components**. HTTP calls go through a thin [`ofetch`](https://github.com/unjs/ofetch) wrapper (`src/services/http.ts`), and the domain **types** (`src/types/`) are **generated from the backend OpenAPI** (`api.d.ts` via `openapi-typescript`) so the Pydantic response models remain the single source of truth.
 
 **Components** (`src/components/`)
 - `DashboardView` / `DashboardCard` — watchlist dashboard view (with score/change/name sorting), shown by default on load
@@ -448,10 +449,15 @@ Vue 3 SPA (`<script setup>`) located in [`frontend/`](frontend/).
 **Composables** (`src/composables/`)
 - `useTickerAnalysis` — data layer: active ticker + TanStack queries (analysis, chart, fundamentals, news, backtest) and the search action
 - `usePortfolio` — portfolio data layer: TanStack query + add/update/remove mutations with live valuation
-- `useFormatters` — formatting (numbers, %, color classes based on thresholds)
+- `useFormatters` — formatting (numbers, %, color classes based on thresholds; market cap via native `Intl.NumberFormat`)
 - `useI18n` — English/French message catalog + locale persistence
 - `useTheme` — persistent light/dark theme
 - `useWatchlist` — persisted watchlist
+
+**Services & types** (`src/services/`, `src/types/`, `src/lib/`)
+- `services/` — typed API layer (`tickerService`, `portfolioService`, `watchlistService`, `searchService`, `systemService`) over the shared `ofetch` client
+- `types/api.d.ts` — TypeScript types generated from the backend OpenAPI (`pnpm gen:api`); the hand-written `types/*.ts` alias these so contracts stay in sync with the backend
+- `lib/chart.ts` — Chart.js configured with only the pieces the app uses (tree-shaken instead of `chart.js/auto`); the four chart-heavy components are **lazy-loaded** so Chart.js ships in a separate chunk fetched on demand
 
 **Persistence** (localStorage): `smm_history`, `smm_watchlist`, `smm_theme`, `smm_locale`, `smm_dash_sort`, `smm_analysis_tab`.
 
@@ -528,8 +534,10 @@ pnpm run dev       # http://localhost:3000 (proxy /ticker, /health, /cache → :
 
 **Frontend production build**
 ```bash
-cd frontend && pnpm run build   # generates frontend/dist
+cd frontend && pnpm run build   # runs vue-tsc type-check, then generates frontend/dist
 ```
+
+> **Regenerating API types** — after changing a backend response model in [`backend/schemas.py`](backend/schemas.py), run `pnpm gen:api` (from `frontend/`) to refresh `backend/openapi.json` and `src/types/api.d.ts`.
 
 > When you change any backend module (routes, business logic, translations or the scoring engine), rebuild the Docker image so the updated `backend/` sources and the `backend/locales/` folder are included in the container.
 
@@ -550,7 +558,7 @@ The SQLite database stores the **favorites (watchlist)**, the **portfolio positi
 
 ## 🗄️ Caching strategy
 
-Six thread-safe in-memory TTL caches (`TTLCache`, in [`backend/cache.py`](backend/cache.py)) limit calls to Yahoo Finance:
+Six thread-safe in-memory TTL caches (`TTLCache`, in [`backend/cache.py`](backend/cache.py)) limit calls to Yahoo Finance. Each wraps a size-bounded [`cachetools.TTLCache`](https://github.com/tkem/cachetools) behind a lock, so entries expire automatically and memory stays bounded:
 
 | Cache | Content | TTL |
 |-------|---------|:---:|

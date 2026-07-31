@@ -485,9 +485,9 @@ const PERIODS = [['3mo','3M'],['6mo','6M'],['1y','1Y'],['2y','2Y'],['max','Max']
 <template>
   <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
     <!-- Period selector -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <h2 class="text-xs font-semibold text-zinc-500 uppercase tracking-widest">{{ t('charts.title') }}</h2>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <button @click="toggleFib"
           :class="['flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
             showFib ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-zinc-800/80 text-zinc-500 hover:text-zinc-300']">

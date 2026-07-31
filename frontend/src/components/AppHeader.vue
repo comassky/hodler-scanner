@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { onClickOutside } from '@vueuse/core'
 import { useTheme } from '../composables/useTheme'
 import { useI18n } from '../composables/useI18n'
 import type { ThemeId } from '../types/ui'
@@ -24,11 +25,16 @@ const themeLabel = (id: ThemeId) => (({ dark: t('header.themeDark'), gray: t('he
 // Platform-aware shortcut hint (⌘K on macOS, Ctrl K elsewhere).
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '')
 const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl K'))
+
+// Mobile: collapse theme / language / reset behind a single settings button.
+const settingsRef = ref<HTMLElement | null>(null)
+const showSettings = ref(false)
+onClickOutside(settingsRef, () => { showSettings.value = false })
 </script>
 
 <template>
   <header class="sticky top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur-md">
-    <div class="px-4 md:px-6 xl:px-8 h-14 flex items-center gap-3">
+    <div class="px-3 sm:px-4 md:px-6 xl:px-8 h-14 flex items-center gap-2 sm:gap-3">
 
       <!-- Logo -->
       <div class="flex items-center gap-2.5 shrink-0">
@@ -77,7 +83,7 @@ const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl K'))
 
       <!-- Recent tickers (analyse view only) -->
       <div v-if="view === 'analyse' && history.length"
-           class="flex items-center gap-1.5 flex-1 min-w-0">
+           class="hidden lg:flex items-center gap-1.5 flex-1 min-w-0">
         <span class="text-zinc-600 text-xs shrink-0">{{ t('header.recent') }}</span>
         <div class="flex items-center gap-1.5 overflow-x-auto min-w-0 scroll-fade-x">
           <button v-for="h in history" :key="h" @click="$emit('search', h)"
@@ -95,6 +101,19 @@ const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl K'))
         </svg>
         <kbd class="hidden sm:block text-[10px] font-mono bg-zinc-800 text-zinc-400 rounded px-1.5 py-0.5 leading-none">{{ shortcutLabel }}</kbd>
       </button>
+
+      <!-- Settings: theme / language / reset — inline on md+, collapsed behind one button on mobile -->
+      <div ref="settingsRef" class="relative md:contents shrink-0">
+        <button @click="showSettings = !showSettings" aria-label="Settings"
+          class="md:hidden w-9 h-9 rounded-xl flex items-center justify-center bg-zinc-900/60 text-zinc-500 hover:text-zinc-300 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <div :class="[showSettings ? 'flex' : 'hidden',
+          'md:flex items-center gap-1.5 md:gap-2',
+          'max-md:absolute max-md:right-0 max-md:top-full max-md:mt-2 max-md:flex-col max-md:items-end max-md:bg-zinc-900 max-md:border max-md:border-zinc-800/80 max-md:rounded-xl max-md:p-2 max-md:shadow-2xl max-md:shadow-black/60 max-md:z-50']">
 
       <!-- Theme switcher -->
       <div class="flex gap-0.5 bg-zinc-900/60 rounded-xl p-1 shrink-0">
@@ -136,6 +155,8 @@ const shortcutLabel = computed(() => (isMac ? '⌘K' : 'Ctrl K'))
           <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
         </svg>
       </button>
+      </div>
+      </div>
     </div>
   </header>
 </template>
