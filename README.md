@@ -1,13 +1,15 @@
 <div align="center">
 
-# 📈 Hodler Scanner
+<img src="frontend/public/favicon.svg" alt="Hodler Scanner logo" width="96" height="96">
+
+# Hodler Scanner
 
 ### 💎 *Buy &amp; Hold* Technical Analysis
 
 **Turn raw market data into an actionable accumulation score, a plain-language thesis and concrete price targets.**
 
 <p>
-  <img alt="Python"       src="https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="Python"       src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="FastAPI"      src="https://img.shields.io/badge/FastAPI-0.111+-009688?style=flat-square&logo=fastapi&logoColor=white">
   <img alt="Vue.js"       src="https://img.shields.io/badge/Vue.js-3.5-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white">
   <img alt="Vite"         src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white">
@@ -126,9 +128,9 @@ flowchart LR
     end
 
     subgraph Server["🐍 FastAPI container (uvicorn :8000)"]
-        API["REST API"]
-        CACHE["TTL caches<br/>(analyses · charts · fundamentals)"]
-        ENGINE["Scoring engine<br/>backend/script.py"]
+        API["REST API<br/>backend/api.py (routes only)"]
+        CACHE["TTL caches<br/>backend/cache.py"]
+        ENGINE["Business logic<br/>backend/analysis.py · charts.py<br/>fundamentals.py · news.py · search.py<br/>market_data.py · script.py"]
         I18N["Language files<br/>backend/i18n.py · backend/locales/*.json"]
         DB[("SQLite<br/>backend/db.py<br/>watchlist · name cache")]
         STATIC["Static SPA mounted on /"]
@@ -162,7 +164,7 @@ Two frontend serving modes are provided:
 | Layer | Technologies |
 |-------|--------------|
 | 📥 **Data** | [`yfinance`](https://github.com/ranaroussi/yfinance) (OHLCV + dividends, 500 sessions) |
-| 🧮 **Compute** | Python 3.11, `pandas ≥ 2.0`, `numpy ≥ 1.26` (vectorized indicators) |
+| 🧮 **Compute** | Python 3.14, `pandas ≥ 2.0`, `numpy ≥ 1.26` (vectorized indicators) |
 | 🌐 **API** | FastAPI ≥ 0.111, Uvicorn (ASGI), Pydantic (validation) |
 | 🌍 **i18n** | Backend JSON language files (`backend/locales/en.json`, `backend/locales/fr.json`) loaded by `backend/i18n.py` |
 | 🖼️ **Frontend** | Vue 3.5, Vite 6, Tailwind CSS v4.1, Chart.js 4.4 + `chartjs-plugin-zoom` |
@@ -172,7 +174,9 @@ Two frontend serving modes are provided:
 
 ## 🔬 The financial analysis engine
 
-All the financial intelligence lives in [`backend/script.py`](backend/script.py) — in particular the `generer_analyse_investisseur_lt(item, lang)` function. Indicators are pre-computed in `_analyse_ticker()` of [`backend/api.py`](backend/api.py) from **500 daily sessions** (auto_adjust disabled, dividends included).
+The backend is split into a **thin routing layer** ([`backend/api.py`](backend/api.py), FastAPI routes only) and dedicated **business-logic modules**: `analysis.py` (technical analysis), `charts.py`, `fundamentals.py`, `news.py`, `search.py`, `market_data.py` (yfinance downloads), `cache.py` (TTL caches) and `serialization.py`.
+
+The scoring intelligence lives in [`backend/script.py`](backend/script.py) — in particular the `generer_analyse_investisseur_lt(item, lang)` function. Indicators are pre-computed in `analyse_ticker()` of [`backend/analysis.py`](backend/analysis.py) from **500 daily sessions** (auto_adjust disabled, dividends included).
 
 ### Technical indicators
 
@@ -437,6 +441,8 @@ A ready-to-use multi-arch image is published on **GHCR** — no build required:
 | `ghcr.io/comassky/hodler-scanner:latest` | latest released tag — **recommended** |
 | `ghcr.io/comassky/hodler-scanner:X.Y.Z` | a specific version tag (e.g. `1.0.0`) |
 
+> **How images are published** — the manual **Release** workflow (`.github/workflows/release.yml`) bumps the version in `frontend/package.json` (single source of truth, also exposed by the API and shown in Swagger), tags `X.Y.Z`, and builds & pushes `X.Y.Z` + `latest`. Every push to `main` publishes `latest-dev` via `.github/workflows/docker-publish.yml`.
+
 ```bash
 # Pull & run the latest stable release
 docker run -d --name hodler-scanner \
@@ -493,7 +499,7 @@ npm run dev        # http://localhost:3000 (proxy /ticker, /health, /cache → :
 cd frontend && npm run build   # generates frontend/dist
 ```
 
-> When you change backend translations or the scoring engine, rebuild the Docker image so `backend/i18n.py` and the `backend/locales/` folder are included in the container.
+> When you change any backend module (routes, business logic, translations or the scoring engine), rebuild the Docker image so the updated `backend/` sources and the `backend/locales/` folder are included in the container.
 
 ---
 
@@ -512,13 +518,15 @@ The SQLite database stores the **favorites (watchlist)** and a **memoized `TICKE
 
 ## 🗄️ Caching strategy
 
-Three thread-safe in-memory TTL caches (`_TTLCache`) limit calls to Yahoo Finance:
+Five thread-safe in-memory TTL caches (`TTLCache`, in [`backend/cache.py`](backend/cache.py)) limit calls to Yahoo Finance:
 
 | Cache | Content | TTL |
 |-------|---------|:---:|
-| `_cache` | Full technical analyses (key `TICKER:lang`) | **15 min** |
-| `_chart_cache` | Historical series (key `TICKER:period`) | **1 h** |
-| `_fund_cache` | Fundamentals | **2 h** |
+| `analysis_cache` | Full technical analyses (key `TICKER:lang`) | **15 min** |
+| `chart_cache` | Historical series (key `TICKER:period`) | **1 h** |
+| `fund_cache` | Fundamentals | **2 h** |
+| `news_cache` | Recent news | **30 min** |
+| `raw_cache` | Raw OHLCV DataFrames | **15 min** |
 
 The `refresh=true` parameter (or the UI **Refresh** button) forces recomputation, ignoring these caches. At startup, `_prewarm()` loads the configured tickers in the background (max 4 concurrent downloads).
 
