@@ -18,17 +18,17 @@
     "chart.js": "^4.5.1",
     "chartjs-plugin-zoom": "^2.2.0",
     "ofetch": "^1.5.1",
-    "vue": "^3.5.40"
+    "vue": "^3.5.41"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~5.9.3",
-    "vite": "^8.0.0",
-    "vue-tsc": "^3.3.8"
+    "typescript": "~7.0.2",
+    "vite": "^8.2.1",
+    "vue-tsc": "^3.3.9"
   }
 }
