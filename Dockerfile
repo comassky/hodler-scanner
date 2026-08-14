@@ -1,5 +1,5 @@
 # ── Stage 1: build the Vue frontend ─────────────────────────────
-FROM node:25-alpine AS frontend-builder
+FROM node:26-alpine AS frontend-builder
 WORKDIR /app
 RUN npm install -g pnpm
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
