@@ -1,7 +1,7 @@
 yfinance>=1.8.0
 pandas>=3.1.1
-numpy>=2.5.4
-fastapi>=0.162.4
+numpy>=2.5.5
+fastapi>=0.165.0
 uvicorn>=0.54.0
 aiofiles>=25.1.0
-cachetools>=8.0.0
+cachetools>=8.0.2
